@@ -47,11 +47,11 @@ static void hex_print(const void *pv, size_t len) {
   printf("\n");
 }
 
-MediaKeySession::MediaKeySession(Cdm *cdm, int32_t licenseType)
+MediaKeySession::MediaKeySession(widevine::Cdm *cdm, int32_t licenseType)
     : m_cdm(cdm)
     , m_CDMData("")
     , m_initData("")
-    , m_initDataType(Cdm::kCenc)
+    , m_initDataType(widevine::Cdm::kCenc)
     , m_licenseType((widevine::Cdm::SessionType)licenseType)
     , m_sessionId("") {
   m_cdm->createSession(m_licenseType, &m_sessionId);
@@ -68,25 +68,25 @@ void MediaKeySession::Run(const IMediaKeySessionCallback *f_piMediaKeySessionCal
     m_piCallback = const_cast<IMediaKeySessionCallback*>(f_piMediaKeySessionCallback);
   }
 
-  Cdm::Status status = m_cdm->generateRequest(m_sessionId, m_initDataType, m_initData);
-  if (Cdm::kSuccess == status)
+  widevine::Cdm::Status status = m_cdm->generateRequest(m_sessionId, m_initDataType, m_initData);
+  if (widevine::Cdm::kSuccess == status)
      printf("generateRequest successful\n");
   else
      printf("generateRequest failed\n");
 }
 
-void MediaKeySession::onMessage(const std::string& f_sessionId, Cdm::MessageType f_messageType, const std::string& f_message) {
+void MediaKeySession::onMessage(widevine::Cdm::MessageType f_messageType, const std::string& f_message) {
   std::string destUrl;
   std::string message;
 
   printf("called\n");
 
   switch (f_messageType) {
-  case Cdm::kLicenseRequest:
+  case widevine::Cdm::kLicenseRequest:
   {
     printf("message is a license request\n");
     destUrl.assign(kLicenseServer); 
-    Cdm::MessageType messageType = Cdm::kLicenseRequest;
+    widevine::Cdm::MessageType messageType = widevine::Cdm::kLicenseRequest;
 
     // FIXME: Errrr, this is weird.
     //if ((Cdm::MessageType)f_message[1] == (Cdm::kIndividualizationRequest + 1)) {
@@ -105,27 +105,27 @@ void MediaKeySession::onMessage(const std::string& f_sessionId, Cdm::MessageType
   m_piCallback->OnKeyMessage((const uint8_t*) message.c_str(), message.size(), (char*) destUrl.c_str());
 }
 
-void MediaKeySession::onKeyStatusesChange(const std::string& f_sessionId) {
-  Cdm::KeyStatusMap map;
+void MediaKeySession::onKeyStatusChange() {
+  widevine::Cdm::KeyStatusMap map;
   std::string keyStatus;
-  if (Cdm::kSuccess == m_cdm->getKeyStatuses(f_sessionId, &map)) {
+  if (widevine::Cdm::kSuccess == m_cdm->getKeyStatuses(m_sessionId, &map)) {
     switch (map.begin()->second) {
-    case Cdm::kUsable:
+    case widevine::Cdm::kUsable:
       keyStatus = "KeyUsable";
       break;
-    case Cdm::kExpired:
+    case widevine::Cdm::kExpired:
       keyStatus = "KeyExpired";
       break;
-    case Cdm::kOutputRestricted:
+    case widevine::Cdm::kOutputRestricted:
       keyStatus = "KeyOutputRestricted";
       break;
-    case Cdm::kStatusPending:
+    case widevine::Cdm::kStatusPending:
       keyStatus = "KeyStatusPending";
       break;
-    case Cdm::kInternalError:
+    case widevine::Cdm::kInternalError:
       keyStatus = "KeyInternalError";
       break;
-    case Cdm::kReleased:
+    case widevine::Cdm::kReleased:
       keyStatus = "KeyReleased";
       break;
     default:
@@ -137,25 +137,25 @@ void MediaKeySession::onKeyStatusesChange(const std::string& f_sessionId) {
 }
 
 
-void MediaKeySession::onKeyStatusError(const std::string& f_sessionId, Cdm::Status status) {
+void MediaKeySession::onKeyStatusError(widevine::Cdm::Status status) {
   std::string errorStatus;
   switch (status) {
-  case Cdm::kNeedsDeviceCertificate:
+  case widevine::Cdm::kNeedsDeviceCertificate:
     errorStatus = "NeedsDeviceCertificate";
     break;
-  case Cdm::kSessionNotFound:
+  case widevine::Cdm::kSessionNotFound:
     errorStatus = "SessionNotFound";
     break;
-  case Cdm::kDecryptError:
+  case widevine::Cdm::kDecryptError:
     errorStatus = "DecryptError";
     break;
-  case Cdm::kInvalidAccess:
-    errorStatus = "InvalidAccess";
+  case widevine::Cdm::kTypeError:
+    errorStatus = "TypeError";
     break;
-  case Cdm::kQuotaExceeded:
+  case widevine::Cdm::kQuotaExceeded:
     errorStatus = "QuotaExceeded";
     break;
-  case Cdm::kNotSupported:
+  case widevine::Cdm::kNotSupported:
     errorStatus = "NotSupported";
     break;
   default:
@@ -165,15 +165,21 @@ void MediaKeySession::onKeyStatusError(const std::string& f_sessionId, Cdm::Stat
   m_piCallback->OnKeyError(0, CDMi_S_FALSE, errorStatus.c_str());
 }
 
-void MediaKeySession::onRemoveComplete(const std::string& f_sessionId) {
+void MediaKeySession::onRemoveComplete() {
   m_piCallback->OnKeyStatusUpdate("KeyReleased");
+}
+
+void MediaKeySession::onDeferredComplete(widevine::Cdm::Status) {
+}
+
+void MediaKeySession::onDirectIndividualizationRequest(const string&) {
 }
 
 CDMi_RESULT MediaKeySession::Load(void) {
   CDMi_RESULT ret = CDMi_S_FALSE;
-  Cdm::Status status = m_cdm->load(m_sessionId);
-  if (Cdm::kSuccess != status)
-    onKeyStatusError(m_sessionId, status);
+  widevine::Cdm::Status status = m_cdm->load(m_sessionId);
+  if (widevine::Cdm::kSuccess != status)
+    onKeyStatusError(status);
   else
     ret = CDMi_SUCCESS;
   return ret;
@@ -184,15 +190,15 @@ void MediaKeySession::Update(
     uint32_t f_cbKeyMessageResponse) {
   std::string keyResponse(reinterpret_cast<const char*>(f_pbKeyMessageResponse),
       f_cbKeyMessageResponse);
-  if (Cdm::kSuccess != m_cdm->update(m_sessionId, keyResponse))
-     onKeyStatusesChange(m_sessionId);
+  if (widevine::Cdm::kSuccess != m_cdm->update(m_sessionId, keyResponse))
+     onKeyStatusChange();
 }
 
 CDMi_RESULT MediaKeySession::Remove(void) {
   CDMi_RESULT ret = CDMi_S_FALSE;
-  Cdm::Status status = m_cdm->remove(m_sessionId);
-  if (Cdm::kSuccess != status)
-    onKeyStatusError(m_sessionId, status);
+  widevine::Cdm::Status status = m_cdm->remove(m_sessionId);
+  if (widevine::Cdm::kSuccess != status)
+    onKeyStatusError(status);
   else
     ret =  CDMi_SUCCESS;
   return ret;
@@ -200,7 +206,7 @@ CDMi_RESULT MediaKeySession::Remove(void) {
 
 CDMi_RESULT MediaKeySession::Close(void) {
   CDMi_RESULT status = CDMi_S_FALSE;
-  if (Cdm::kSuccess == m_cdm->close(m_sessionId))
+  if (widevine::Cdm::kSuccess == m_cdm->close(m_sessionId))
     status = CDMi_SUCCESS;
   return status;
 }
@@ -222,21 +228,21 @@ CDMi_RESULT MediaKeySession::Init(
     uint32_t f_cbCDMData) {
   switch ((LicenseType)licenseType) {
   case PersistentUsageRecord:
-    m_licenseType = Cdm::kPersistentUsageRecord;
+    m_licenseType = widevine::Cdm::kPersistentUsageRecord;
     break;
   case PersistentLicense:
-    m_licenseType = Cdm::kPersistentLicense;
+    m_licenseType = widevine::Cdm::kPersistentLicense;
     break;
   default:
-    m_licenseType = Cdm::kTemporary;
+    m_licenseType = widevine::Cdm::kTemporary;
     break;
   }
 
   if (f_pwszInitDataType) {
     if (!strcmp(f_pwszInitDataType, "cenc"))
-       m_initDataType = Cdm::kCenc;
+       m_initDataType = widevine::Cdm::kCenc;
     else if (!strcmp(f_pwszInitDataType, "webm"))
-       m_initDataType = Cdm::kWebM;
+       m_initDataType = widevine::Cdm::kWebM;
   }
 
   if (f_pbInitData && f_cbInitData)
@@ -258,7 +264,7 @@ CDMi_RESULT MediaKeySession::Decrypt(
     uint32_t f_cbData,
     uint32_t *f_pcbOpaqueClearContent,
     uint8_t **f_ppbOpaqueClearContent) {
-  Cdm::KeyStatusMap map;
+  widevine::Cdm::KeyStatusMap map;
   std::string keyStatus;
 
   CDMi_RESULT status = CDMi_S_FALSE;
@@ -271,15 +277,15 @@ CDMi_RESULT MediaKeySession::Decrypt(
   memcpy(iv,(char*)f_pbIV, f_cbIV);
 #endif
 
-  if (Cdm::kSuccess == m_cdm->getKeyStatuses(m_sessionId, &map)) {
-    Cdm::KeyStatusMap::iterator it = map.begin();
+  if (widevine::Cdm::kSuccess == m_cdm->getKeyStatuses(m_sessionId, &map)) {
+    widevine::Cdm::KeyStatusMap::iterator it = map.begin();
     // FIXME: We just check the first key? How do we know that's the Widevine key and not, say, a PlayReady one?
-    if (Cdm::kUsable == it->second) {
-      Cdm::OutputBuffer output;
+    if (widevine::Cdm::kUsable == it->second) {
+      widevine::Cdm::OutputBuffer output;
       uint8_t *outputBuffer = (uint8_t*) malloc(f_cbData * sizeof(uint8_t));
       output.data = outputBuffer;
       output.data_length = f_cbData;
-      Cdm::InputBuffer input;
+      widevine::Cdm::InputBuffer input;
       input.data = f_pbData;
       input.data_length = f_cbData;
       input.key_id = reinterpret_cast<const uint8_t*>((it->first).c_str());
@@ -291,8 +297,8 @@ CDMi_RESULT MediaKeySession::Decrypt(
       input.iv = iv;
       input.iv_length = sizeof(iv);
 #endif
-      input.is_encrypted = true;
-      if (Cdm::kSuccess == m_cdm->decrypt(input, output)) {
+
+      if (widevine::Cdm::kSuccess == m_cdm->decrypt(input, output)) {
         /* Return clear content */
         *f_pcbOpaqueClearContent = output.data_length;
         *f_ppbOpaqueClearContent = outputBuffer;
