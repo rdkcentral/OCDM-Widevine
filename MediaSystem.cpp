@@ -64,7 +64,9 @@ public:
 
         if (widevine::Cdm::kSuccess == widevine::Cdm::initialize(
                 widevine::Cdm::kNoSecureOutput, client_info, &_host, &_host, &_host, static_cast<widevine::Cdm::LogLevel>(0))) {
-            _cdm = widevine::Cdm::create(this, &_host, true);
+	    // Setting the last parameter to true, requres serviceCertificates so the requests can be encrypted. Currently badly supported
+            // in the EME tests, so turn of for now :-)
+            _cdm = widevine::Cdm::create(this, &_host, false);
         }
     }
     virtual ~WideVine() {
