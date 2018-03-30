@@ -17,21 +17,15 @@
 
 #pragma once
 
-#include "cdmi.h"
-
-#include "host/wv_host.h"
-#include "scoped_ptr.h"
-
-using namespace std;
-using namespace widevine;
-using namespace wvcdm;
+#include <cdm.h>
+#include <cdmi.h>
 
 namespace CDMi
 {
 class MediaKeySession : public IMediaKeySession
 {
 public:
-    MediaKeySession(Cdm*, int32_t);
+    MediaKeySession(widevine::Cdm*, int32_t);
     virtual ~MediaKeySession(void);
 
     virtual void Run(
@@ -79,30 +73,24 @@ public:
         const uint32_t  f_cbClearContentOpaque,
         uint8_t  *f_pbClearContentOpaque );
 
-    // Callback Interfaces
-    virtual void onMessageUrl(const std::string& f_sessionId,
-        const std::string& f_serverUrl) {}
-
-    virtual void onMessage(const std::string& f_sessionId,
-        Cdm::MessageType f_messageType,
-        const std::string& f_message);
-  
-    virtual void onKeyStatusesChange(const std::string& f_sessionId);
-    virtual void onRemoveComplete(const std::string& f_sessionId);
+    // Callback Interfaces from widevine::IClientNotification
+    // -------------------------------------------------------
+    void onMessageUrl(const std::string& f_serverUrl) {}
+    void onMessage(widevine::Cdm::MessageType f_messageType, const std::string& f_message);
+    void onKeyStatusChange();
+    void onRemoveComplete();
+    void onDeferredComplete(widevine::Cdm::Status);
+    void onDirectIndividualizationRequest(const std::string&);
 
 private:
-    static void* _CallRunThread(
-        void *arg);
-    static void* _CallRunThread2(
-        void *arg);
-    void onKeyStatusError(const std::string& f_sessionId, Cdm::Status status);
+    void onKeyStatusError(widevine::Cdm::Status status);
 
 private:
-    Cdm *m_cdm;
+    widevine::Cdm *m_cdm;
     std::string m_CDMData;
     std::string m_initData;
-    Cdm::InitDataType m_initDataType;
-    Cdm::SessionType m_licenseType;
+    widevine::Cdm::InitDataType m_initDataType;
+    widevine::Cdm::SessionType m_licenseType;
     std::string m_sessionId;
     IMediaKeySessionCallback *m_piCallback;
 };
