@@ -44,7 +44,7 @@ private:
     inline bool operator!= (const Timer& RHS) const {
       return (_client != RHS._client);
     }
-    inline uint64 Timed (const uint64 /* scheduledTime */) {
+    inline uint64_t Timed (const uint64_t /* scheduledTime */) {
       _client->onTimerExpired(_context);
       return(0); // No need to reschedule.
     }

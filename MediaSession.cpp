@@ -28,24 +28,10 @@
 #include <sys/utsname.h>
 
 #define NYI_KEYSYSTEM "keysystem-placeholder"
-#define IV_FIX_WORKAROUND 1
 
 using namespace std;
 
 namespace CDMi {
-
-static void hex_print(const void *pv, size_t len) {
-  const unsigned char *p = (const unsigned char*)pv;
-  if (!pv)
-    printf("NULL");
-  else
-  {
-    size_t i = 0;
-    for (; i<len;++i)
-      printf("%02X ", *p++);
-  }
-  printf("\n");
-}
 
 MediaKeySession::MediaKeySession(widevine::Cdm *cdm, int32_t licenseType)
     : m_cdm(cdm)
@@ -55,6 +41,8 @@ MediaKeySession::MediaKeySession(widevine::Cdm *cdm, int32_t licenseType)
     , m_licenseType((widevine::Cdm::SessionType)licenseType)
     , m_sessionId("") {
   m_cdm->createSession(m_licenseType, &m_sessionId);
+
+  ::memset(m_IV, 0 , sizeof(m_IV));;
 }
 
 MediaKeySession::~MediaKeySession(void) {
@@ -270,12 +258,10 @@ CDMi_RESULT MediaKeySession::Decrypt(
   CDMi_RESULT status = CDMi_S_FALSE;
   *f_pcbOpaqueClearContent = 0;
 
-  /* Added a workaround to fix IV issue. Will revert once we have proper fix */
-#ifdef IV_FIX_WORKAROUND
-  unsigned char iv[16];
-  memset(iv,0,16);
-  memcpy(iv,(char*)f_pbIV, f_cbIV);
-#endif
+  memcpy(m_IV, f_pbIV, (f_cbIV > 16 ? 16 : f_cbIV));
+  if (f_cbIV < 16) {
+    memset(&(m_IV[f_cbIV]), 0, 16 - f_cbIV);
+  }
 
   if (widevine::Cdm::kSuccess == m_cdm->getKeyStatuses(m_sessionId, &map)) {
     widevine::Cdm::KeyStatusMap::iterator it = map.begin();
@@ -290,18 +276,14 @@ CDMi_RESULT MediaKeySession::Decrypt(
       input.data_length = f_cbData;
       input.key_id = reinterpret_cast<const uint8_t*>((it->first).c_str());
       input.key_id_length = (it->first).size();
-#ifndef IV_FIX_WORKAROUND /* Added a workaround to fix IV issue. Will revert once we have proper fix */
-      input.iv = f_pbIV;
-      input.iv_length = f_cbIV;
-#else
-      input.iv = iv;
-      input.iv_length = sizeof(iv);
-#endif
+      input.iv = m_IV;
+      input.iv_length = sizeof(m_IV);
 
       if (widevine::Cdm::kSuccess == m_cdm->decrypt(input, output)) {
         /* Return clear content */
         *f_pcbOpaqueClearContent = output.data_length;
         *f_ppbOpaqueClearContent = outputBuffer;
+        
         status = CDMi_SUCCESS;
       }
     }

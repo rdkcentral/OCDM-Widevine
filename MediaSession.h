@@ -93,6 +93,7 @@ private:
     widevine::Cdm::SessionType m_licenseType;
     std::string m_sessionId;
     IMediaKeySessionCallback *m_piCallback;
+    uint8_t m_IV[16];
 };
 
 }  // namespace CDMi
