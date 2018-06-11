@@ -165,8 +165,16 @@ void MediaKeySession::onKeyStatusError(widevine::Cdm::Status status) {
 }
 
 void MediaKeySession::onRemoveComplete() {
-    // FIXME: This interface needs modifying.
-  m_piCallback->OnKeyStatusUpdate("KeyReleased", nullptr, 0);
+    widevine::Cdm::KeyStatusMap map;
+    if (widevine::Cdm::kSuccess == m_cdm->getKeyStatuses(m_sessionId, &map)) {
+        for (const auto& pair : map) {
+            const std::string& keyValue = pair.first;
+
+            m_piCallback->OnKeyStatusUpdate("KeyReleased",
+                                        reinterpret_cast<const uint8_t*>(keyValue.c_str()),
+                                        keyValue.length());
+        }
+    }
 }
 
 void MediaKeySession::onDeferredComplete(widevine::Cdm::Status) {
