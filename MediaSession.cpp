@@ -95,33 +95,40 @@ void MediaKeySession::onMessage(widevine::Cdm::MessageType f_messageType, const 
 
 void MediaKeySession::onKeyStatusChange() {
   widevine::Cdm::KeyStatusMap map;
-  std::string keyStatus;
   if (widevine::Cdm::kSuccess == m_cdm->getKeyStatuses(m_sessionId, &map)) {
-    switch (map.begin()->second) {
-    case widevine::Cdm::kUsable:
-      keyStatus = "KeyUsable";
-      break;
-    case widevine::Cdm::kExpired:
-      keyStatus = "KeyExpired";
-      break;
-    case widevine::Cdm::kOutputRestricted:
-      keyStatus = "KeyOutputRestricted";
-      break;
-    case widevine::Cdm::kStatusPending:
-      keyStatus = "KeyStatusPending";
-      break;
-    case widevine::Cdm::kInternalError:
-      keyStatus = "KeyInternalError";
-      break;
-    case widevine::Cdm::kReleased:
-      keyStatus = "KeyReleased";
-      break;
-    default:
-      keyStatus = "UnKnownError";
-      break;
+    widevine::Cdm::KeyStatusMap::const_iterator index(map.begin());
+
+    while (index != map.end()) {
+
+      std::string keyStatus;
+
+      switch (index->second) {
+      case widevine::Cdm::kUsable:
+        keyStatus = "KeyUsable";
+        break;
+      case widevine::Cdm::kExpired:
+        keyStatus = "KeyExpired";
+        break;
+      case widevine::Cdm::kOutputRestricted:
+        keyStatus = "KeyOutputRestricted";
+        break;
+      case widevine::Cdm::kStatusPending:
+        keyStatus = "KeyStatusPending";
+        break;
+      case widevine::Cdm::kInternalError:
+        keyStatus = "KeyInternalError";
+        break;
+      case widevine::Cdm::kReleased:
+        keyStatus = "KeyReleased";
+        break;
+      default:
+          keyStatus = "UnKnownError";
+          break;
+                    
+      m_piCallback->OnKeyStatusUpdate(keyStatus, reinterpret_cast<const uint8_t*>(index->second.c_str()), index->second.length() );
+      index++;
     }
   }
-  m_piCallback->OnKeyStatusUpdate(keyStatus.c_str());
 }
 
 
