@@ -50,29 +50,26 @@ MediaKeySession::~MediaKeySession(void) {
 
 
 void MediaKeySession::Run(const IMediaKeySessionCallback *f_piMediaKeySessionCallback) {
-  printf("called with callback %p\n", f_piMediaKeySessionCallback);
 
   if (f_piMediaKeySessionCallback) {
     m_piCallback = const_cast<IMediaKeySessionCallback*>(f_piMediaKeySessionCallback);
-  }
 
-  widevine::Cdm::Status status = m_cdm->generateRequest(m_sessionId, m_initDataType, m_initData);
-  if (widevine::Cdm::kSuccess == status)
-     printf("generateRequest successful\n");
-  else
-     printf("generateRequest failed\n");
+    widevine::Cdm::Status status = m_cdm->generateRequest(m_sessionId, m_initDataType, m_initData);
+    if (widevine::Cdm::kSuccess != status)
+       printf("generateRequest failed\n");
+  }
+  else {
+      m_piCallback = nullptr;
+  }
 }
 
 void MediaKeySession::onMessage(widevine::Cdm::MessageType f_messageType, const std::string& f_message) {
   std::string destUrl;
   std::string message;
 
-  printf("called\n");
-
   switch (f_messageType) {
   case widevine::Cdm::kLicenseRequest:
   {
-    printf("message is a license request\n");
     destUrl.assign(kLicenseServer); 
     widevine::Cdm::MessageType messageType = widevine::Cdm::kLicenseRequest;
 
