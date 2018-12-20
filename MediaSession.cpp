@@ -284,7 +284,16 @@ CDMi_RESULT MediaKeySession::Decrypt(
   }
 
   if (widevine::Cdm::kSuccess == m_cdm->getKeyStatuses(m_sessionId, &map)) {
-    widevine::Cdm::KeyStatusMap::iterator it = map.begin();
+    widevine::Cdm::KeyStatusMap::iterator it;
+    if(keyIdLength > 0) {
+      // if keyid is provided, find it in the map
+      std::string keyIdString((const char*) keyId, (size_t) keyIdLength);
+      it = map.find(keyIdString);
+    } else {
+      // if no keyid is provided, use the first one in the map
+      it = map.begin();
+    }
+
     // FIXME: We just check the first key? How do we know that's the Widevine key and not, say, a PlayReady one?
     if (widevine::Cdm::kUsable == it->second) {
       widevine::Cdm::OutputBuffer output;
