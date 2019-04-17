@@ -70,8 +70,6 @@ public:
         }
     }
     virtual ~WideVine() {
-        assert (_mediaKeySession == nullptr);
-
         _adminLock.Lock();
 
         SessionMap::iterator index (_sessions.begin());
