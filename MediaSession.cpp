@@ -270,7 +270,8 @@ CDMi_RESULT MediaKeySession::Decrypt(
     uint32_t *f_pcbOpaqueClearContent,
     uint8_t **f_ppbOpaqueClearContent,
     const uint8_t keyIdLength,
-    const uint8_t* keyId)
+    const uint8_t* keyId,
+    bool /* initWithLast15 */)
 {
   widevine::Cdm::KeyStatusMap map;
   std::string keyStatus;
@@ -334,4 +335,9 @@ CDMi_RESULT MediaKeySession::ReleaseClearContent(
   }
   return ret;
 }
+
+void MediaKeySession::UninitializeContext()
+{
+}
+
 }  // namespace CDMi
