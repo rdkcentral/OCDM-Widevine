@@ -336,8 +336,4 @@ CDMi_RESULT MediaKeySession::ReleaseClearContent(
   return ret;
 }
 
-void MediaKeySession::UninitializeContext()
-{
-}
-
 }  // namespace CDMi

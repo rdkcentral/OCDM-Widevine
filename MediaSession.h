@@ -77,8 +77,6 @@ public:
         const uint32_t  f_cbClearContentOpaque,
         uint8_t  *f_pbClearContentOpaque );
 
-    virtual void UninitializeContext();
-
     // Callback Interfaces from widevine::IClientNotification
     // -------------------------------------------------------
     void onMessageUrl(const std::string& f_serverUrl) {}
