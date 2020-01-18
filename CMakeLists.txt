@@ -7,7 +7,7 @@ find_package(WPEFramework)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(PLUGIN_NAME Widevine)
-set(MODULE_NAME WPEFramework${PLUGIN_NAME})
+set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
 
 # This contains all kinds of plugins (publicely available, so they all need the plugin support library !!
 
