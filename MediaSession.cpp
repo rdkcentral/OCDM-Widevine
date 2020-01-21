@@ -315,10 +315,11 @@ CDMi_RESULT MediaKeySession::Decrypt(
 
     // FIXME: We just check the first key? How do we know that's the Widevine key and not, say, a PlayReady one?
     if (widevine::Cdm::kUsable == it->second) {
+      // Decrypt content in place of input buffer. 
       widevine::Cdm::OutputBuffer output;
-      uint8_t *outputBuffer = (uint8_t*) malloc(f_cbData * sizeof(uint8_t));
-      output.data = outputBuffer;
+      output.data = const_cast<uint8_t*>(f_pbData);
       output.data_length = f_cbData;
+
       widevine::Cdm::InputBuffer input;
       input.data = f_pbData;
       input.data_length = f_cbData;
@@ -328,10 +329,9 @@ CDMi_RESULT MediaKeySession::Decrypt(
       input.iv_length = sizeof(m_IV);
 
       if (widevine::Cdm::kSuccess == m_cdm->decrypt(input, output)) {
-        /* Return clear content */
-        *f_pcbOpaqueClearContent = output.data_length;
-        *f_ppbOpaqueClearContent = outputBuffer;
-        
+        // Return decrypted content in place of the input buffer.
+        *f_ppbOpaqueClearContent = const_cast<uint8_t*>(f_pbData);
+        *f_pcbOpaqueClearContent = f_cbData;
         status = CDMi_SUCCESS;
       }
     }
