@@ -29,7 +29,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
 #
 
-find_path (WIDEVINE_INCLUDE_DIRS NAME wv_cdm_types.h PATHS "usr/include/" PATH_SUFFIXES "openssl")
+find_path (WIDEVINE_INCLUDE_DIRS NAMES wv_cdm_types.h PATHS "usr/include/" PATH_SUFFIXES "openssl")
 
 find_library(WIDEVINE_LIBRARIES NAME widevine_ce_cdm_shared PATH_SUFFIXES lib)
 
