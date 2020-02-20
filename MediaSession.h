@@ -1,6 +1,6 @@
 /*
  * Copyright 2016-2017 TATA ELXSI
- * Copyright 201-20176 Metrological
+ * Copyright 2016-2017 Metrological
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
