@@ -18,7 +18,6 @@
  */
 
 #include "HostImplementation.h"
-#include "DeviceCertificate.h"
 
 using namespace widevine;
 using namespace WPEFramework;

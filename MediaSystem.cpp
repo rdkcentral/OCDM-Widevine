@@ -22,6 +22,12 @@
 #include <iostream>
 #include <sstream>
 #include <sys/utsname.h>
+#include <core/core.h>
+
+uint8_t* kDeviceCert = nullptr;
+size_t kDeviceCertSize = 0;
+
+using namespace WPEFramework;
 
 namespace CDMi {
 
@@ -32,6 +38,24 @@ private:
     WideVine& operator= (const WideVine&) = delete;
 
     typedef std::map<std::string, MediaKeySession*> SessionMap;
+
+    class Config : public Core::JSON::Container {
+    public:
+        Config(const Config&) = delete;
+        Config& operator=(const Config&) = delete;
+        Config()
+            : Core::JSON::Container()
+            , KeyBox()
+        {
+            Add(_T("keybox"), &KeyBox);
+        }
+        ~Config()
+        {
+        }
+
+    public:
+        Core::JSON::String KeyBox;
+    };
 
 public:
     WideVine()
@@ -85,6 +109,31 @@ public:
 
         if (_cdm != nullptr) {
             delete _cdm;
+        }
+
+        if (kDeviceCert != nullptr) {
+            delete [] kDeviceCert;
+            kDeviceCert = nullptr;
+            kDeviceCertSize = 0;
+        }
+    }
+
+    void Initialize(const WPEFramework::PluginHost::IShell * shell, const std::string& configline)
+    {
+        Config config;
+        config.FromString(configline);
+
+        if (config.KeyBox.IsSet() == true) {
+            Core::DataElementFile dataBuffer(config.KeyBox.Value(), Core::File::USER_READ);
+
+            if(dataBuffer.IsValid() == false) {
+                TRACE_L1(_T("Failed to open %s"), config.KeyBox.Value().c_str());
+            } else {
+                kDeviceCertSize = dataBuffer.Size();
+                kDeviceCert = new uint8_t[kDeviceCertSize];
+
+                ::memcpy(kDeviceCert, dataBuffer.Buffer(), dataBuffer.Size());
+            }
         }
     }
 

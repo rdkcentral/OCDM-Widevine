@@ -23,6 +23,9 @@
 #include "cdm.h"
 #include "override.h"
 
+extern uint8_t* kDeviceCert;
+extern size_t kDeviceCertSize;
+
 #include <core/core.h>
 
 namespace CDMi {

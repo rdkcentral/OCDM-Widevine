@@ -33,7 +33,6 @@ find_package(WideVine REQUIRED)
 
 set(PLUGIN_SOURCES
     HostImplementation.cpp
-    DeviceCertificate.cpp
     MediaSession.cpp
     MediaSystem.cpp)
 
