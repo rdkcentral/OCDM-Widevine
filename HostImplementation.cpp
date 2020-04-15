@@ -35,7 +35,7 @@ HostImplementation::HostImplementation()
 HostImplementation::~HostImplementation() {
 }
 
-void HostImplementation::PreloadFile(const std::string& filename, string&& filecontent ) {
+void HostImplementation::PreloadFile(const std::string& filename, std::string&& filecontent ) {
   _files.emplace(filename, filecontent);
 }
 

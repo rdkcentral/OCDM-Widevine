@@ -82,7 +82,7 @@ public:
 public:
 
   // note this method is not thread safe regarding simultanious widevine::Cdm::IStorage callbacks, make sure they cannot be not active when calling this
-  void PreloadFile(const std::string& filename, string&& filecontent );
+  void PreloadFile(const std::string& filename, std::string&& filecontent );
 
   //
   // widevine::Cdm::IStorage implementation
