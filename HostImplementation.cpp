@@ -22,32 +22,21 @@
 using namespace widevine;
 using namespace WPEFramework;
 
-namespace {
-  const std::string kCertificateFilename = "cert.bin";
-}  // namespace
-
 namespace CDMi {
 
 HostImplementation::HostImplementation() 
-  : _saveDeviceCert(false)
+  : widevine::Cdm::IStorage()
+  , widevine::Cdm::IClock()
+  , widevine::Cdm::ITimer()
   , _timer(Core::Thread::DefaultStackSize(),  _T("widevine"))
   , _files() {
-  Reset();
 }
 
 HostImplementation::~HostImplementation() {
 }
 
-void HostImplementation::Reset() {
-
-  _saveDeviceCert = false;
-
-  _files.clear();
-  _files[kCertificateFilename.c_str()] = std::string(reinterpret_cast<const char*>(kDeviceCert), kDeviceCertSize);
-}
-
-int HostImplementation::NumTimers() const { 
- return static_cast<int>(_timer.Pending()); 
+void HostImplementation::PreloadFile(const std::string& filename, std::string&& filecontent ) {
+  _files.emplace(filename, filecontent);
 }
 
 // widevine::Cdm::IStorage implementation
@@ -64,9 +53,6 @@ int HostImplementation::NumTimers() const {
 /* virtual */ bool HostImplementation::write(const std::string& name, const std::string& data) {
   TRACE_L1("write file: %s", name.c_str());
   _files[name] = data;
-  if (_saveDeviceCert && kCertificateFilename.compare(name) == 0) {
-    _saveDeviceCert = false;
-  }
   return true;
 }
 

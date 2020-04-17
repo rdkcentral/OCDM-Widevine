@@ -24,8 +24,6 @@
 #include <sys/utsname.h>
 #include <core/core.h>
 
-uint8_t* kDeviceCert = nullptr;
-size_t kDeviceCertSize = 0;
 
 using namespace WPEFramework;
 
@@ -36,6 +34,8 @@ class WideVine : public IMediaKeys, public widevine::Cdm::IEventListener
 private:
     WideVine (const WideVine&) = delete;
     WideVine& operator= (const WideVine&) = delete;
+
+    static constexpr char _certificateFilename[] = {"cert.bin"};
 
     typedef std::map<std::string, MediaKeySession*> SessionMap;
 
@@ -110,12 +110,6 @@ public:
         if (_cdm != nullptr) {
             delete _cdm;
         }
-
-        if (kDeviceCert != nullptr) {
-            delete [] kDeviceCert;
-            kDeviceCert = nullptr;
-            kDeviceCertSize = 0;
-        }
     }
 
     void Initialize(const WPEFramework::PluginHost::IShell * shell, const std::string& configline)
@@ -129,10 +123,7 @@ public:
             if(dataBuffer.IsValid() == false) {
                 TRACE_L1(_T("Failed to open %s"), config.KeyBox.Value().c_str());
             } else {
-                kDeviceCertSize = dataBuffer.Size();
-                kDeviceCert = new uint8_t[kDeviceCertSize];
-
-                ::memcpy(kDeviceCert, dataBuffer.Buffer(), dataBuffer.Size());
+                _host.PreloadFile(_certificateFilename,  std::string(reinterpret_cast<const char*>(dataBuffer.Buffer()), dataBuffer.Size()));
             }
         }
     }
