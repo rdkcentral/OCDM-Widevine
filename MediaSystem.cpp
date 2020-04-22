@@ -262,6 +262,8 @@ private:
     SessionMap _sessions;
 };
 
+constexpr char WideVine::_certificateFilename[];
+
 static SystemFactoryType<WideVine> g_instance({"video/webm", "video/mp4", "audio/webm", "audio/mp4"});
 
 }  // namespace CDMi
