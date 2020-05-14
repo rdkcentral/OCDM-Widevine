@@ -210,14 +210,6 @@ public:
     }
 
     virtual void onKeyStatusesChange(const std::string& session_id) {
-
-        _adminLock.Lock();
-
-        SessionMap::iterator index (_sessions.find(session_id));
-
-        if (index != _sessions.end()) index->second->onKeyStatusChange();
-
-        _adminLock.Unlock();
     }
 
     virtual void onRemoveComplete(const std::string& session_id) {
