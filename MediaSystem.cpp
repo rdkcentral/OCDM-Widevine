@@ -45,16 +45,16 @@ private:
         Config& operator=(const Config&) = delete;
         Config()
             : Core::JSON::Container()
-            , KeyBox()
+            , Certificate()
         {
-            Add(_T("keybox"), &KeyBox);
+            Add(_T("certificate"), &Certificate);
         }
         ~Config()
         {
         }
 
     public:
-        Core::JSON::String KeyBox;
+        Core::JSON::String Certificate;
     };
 
 public:
@@ -117,11 +117,11 @@ public:
         Config config;
         config.FromString(configline);
 
-        if (config.KeyBox.IsSet() == true) {
-            Core::DataElementFile dataBuffer(config.KeyBox.Value(), Core::File::USER_READ);
+        if (config.Certificate.IsSet() == true) {
+            Core::DataElementFile dataBuffer(config.Certificate.Value(), Core::File::USER_READ);
 
             if(dataBuffer.IsValid() == false) {
-                TRACE_L1(_T("Failed to open %s"), config.KeyBox.Value().c_str());
+                TRACE_L1(_T("Failed to open %s"), config.Certificate.Value().c_str());
             } else {
                 _host.PreloadFile(_certificateFilename,  std::string(reinterpret_cast<const char*>(dataBuffer.Buffer()), dataBuffer.Size()));
             }
