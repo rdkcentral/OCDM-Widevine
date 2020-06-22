@@ -121,7 +121,7 @@ public:
         config.FromString(configline);
 
         if (config.Keybox.IsSet() == true) {
-            Core::SystemInfo::SetEnvironment("WIDEVINE_TEST_KEYBOX_PATH", config.Keybox.Value().c_str());
+            Core::SystemInfo::SetEnvironment("WIDEVINE_KEYBOX_PATH", config.Keybox.Value().c_str());
         }
 
         if (config.Certificate.IsSet() == true) {
