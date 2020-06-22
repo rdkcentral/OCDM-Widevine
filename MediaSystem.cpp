@@ -46,8 +46,10 @@ private:
         Config()
             : Core::JSON::Container()
             , Certificate()
+            , Keybox()
         {
             Add(_T("certificate"), &Certificate);
+            Add(_T("keybox"), &Keybox);
         }
         ~Config()
         {
@@ -55,6 +57,7 @@ private:
 
     public:
         Core::JSON::String Certificate;
+        Core::JSON::String Keybox;
     };
 
 public:
@@ -116,6 +119,10 @@ public:
     {
         Config config;
         config.FromString(configline);
+
+        if (config.Keybox.IsSet() == true) {
+            Core::SystemInfo::SetEnvironment("WIDEVINE_KEYBOX_PATH", config.Keybox.Value().c_str());
+        }
 
         if (config.Certificate.IsSet() == true) {
             Core::DataElementFile dataBuffer(config.Certificate.Value(), Core::File::USER_READ);
