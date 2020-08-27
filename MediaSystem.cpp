@@ -177,7 +177,7 @@ public:
         CDMi_RESULT dr = CDMi_S_FALSE;
 
         std::string serverCertificate(reinterpret_cast<const char*>(f_pbServerCertificate), f_cbServerCertificate);
-        if (widevine::Cdm::kSuccess == _cdm->setServiceCertificate(serverCertificate)) {
+        if (widevine::Cdm::kSuccess == _cdm->setServiceCertificate(widevine::Cdm::kAllServices, serverCertificate)) {
             dr = CDMi_SUCCESS;
         }
         return dr;
@@ -253,6 +253,12 @@ public:
 
         _adminLock.Unlock();
     }
+
+    virtual void onKeyStatusesChange(const std::string& session_id, bool has_new_usable_key) {
+        // TODO
+        fprintf(stderr, "TODO: onKeyStatusesChange");
+    }
+
 
 private:
     WPEFramework::Core::CriticalSection _adminLock;
