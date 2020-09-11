@@ -17,31 +17,40 @@
 
 cmake_minimum_required(VERSION 3.3)
 
-project(Widevine)
+project(WideVine)
+
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+set(DRM_PLUGIN_NAME "WideVine")
+
+set(CENC_VERSION 3 CACHE STRING "Defines version of CENC is used.")
 
 find_package(WPEFramework)
+find_package(${NAMESPACE}Core)
+find_package(Widevine)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-set(PLUGIN_NAME Widevine)
-set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
-
-# This contains all kinds of plugins (publicely available, so they all need the plugin support library !!
-
-find_package(${NAMESPACE}Core REQUIRED)
-find_package(WideVine REQUIRED)
-
-set(PLUGIN_SOURCES
+add_library(${DRM_PLUGIN_NAME} SHARED
     HostImplementation.cpp
     MediaSession.cpp
-    MediaSystem.cpp)
+    MediaSystem.cpp
+)
 
-# add the library
-add_library(${PLUGIN_NAME} SHARED ${PLUGIN_SOURCES})
-target_compile_definitions(${PLUGIN_NAME} PRIVATE ${WIDEVINE_FLAGS})
-target_include_directories(${PLUGIN_NAME} PRIVATE ${PLUGINS_INCLUDE_DIR} ${WIDEVINE_INCLUDE_DIRS})
-target_link_libraries(${PLUGIN_NAME} PRIVATE ${PLUGIN_LIBS} ${NAMESPACE}Core::${NAMESPACE}Core ${WIDEVINE_LIBRARIES})
-set_target_properties(${PLUGIN_NAME} PROPERTIES SUFFIX ".drm")
-set_target_properties(${PLUGIN_NAME} PROPERTIES PREFIX "")
+set_target_properties(${DRM_PLUGIN_NAME} PROPERTIES
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED YES
+    SUFFIX ".drm"
+    PREFIX ""
+)
 
-install(TARGETS ${PLUGIN_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${NAMESPACE}/OCDM)
+target_compile_definitions(${DRM_PLUGIN_NAME}
+    PRIVATE
+        USE_CENC${CENC_VERSION}
+)
+
+target_link_libraries(${DRM_PLUGIN_NAME}
+    PRIVATE
+        ${NAMESPACE}Core::${NAMESPACE}Core
+        ${WIDEVINE_LIBRARIES}
+)
+
+install(TARGETS ${DRM_PLUGIN_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${NAMESPACE}/OCDM)

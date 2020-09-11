@@ -177,7 +177,11 @@ public:
         CDMi_RESULT dr = CDMi_S_FALSE;
 
         std::string serverCertificate(reinterpret_cast<const char*>(f_pbServerCertificate), f_cbServerCertificate);
+#if defined(USE_CENC15)
         if (widevine::Cdm::kSuccess == _cdm->setServiceCertificate(widevine::Cdm::kAllServices, serverCertificate)) {
+#else
+        if (widevine::Cdm::kSuccess == _cdm->setServiceCertificate(serverCertificate)) {
+#endif
             dr = CDMi_SUCCESS;
         }
         return dr;
@@ -216,7 +220,20 @@ public:
         _adminLock.Unlock();
     }
 
-    virtual void onKeyStatusesChange(const std::string& session_id) {
+#if defined(USE_CENC14) || defined(USE_CENC15)
+    virtual void onKeyStatusesChange(const std::string& session_id,  bool has_new_usable_key)
+#else
+    virtual void onKeyStatusesChange(const std::string& session_id)
+#endif
+    {
+        _adminLock.Lock();
+
+        SessionMap::iterator index (_sessions.find(session_id));
+
+        if (index != _sessions.end()) index->second->onKeyStatusChange();
+
+        _adminLock.Unlock();
+
     }
 
     virtual void onRemoveComplete(const std::string& session_id) {
