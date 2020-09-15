@@ -18,9 +18,13 @@
 #ifndef WV_POLICY_H_
 #define WV_POLICY_H_
 
+#if defined(USE_CENC14) || defined(USE_CENC15)
+#include <string>
+std::string a2bs_hex(const std::string& byte);
+#else
 #include "string_conversions.h"
-
 using namespace wvcdm;
+#endif
 
 const std::string kDefaultServerCertificate = a2bs_hex(
     "0ABF020803121028703454C008F63618ADE7443DB6C4C8188BE7F99005228E023082010A02"

@@ -29,10 +29,18 @@ find_package(WPEFramework)
 find_package(${NAMESPACE}Core)
 find_package(Widevine)
 
-add_library(${DRM_PLUGIN_NAME} SHARED
+set(SOURCES
     HostImplementation.cpp
     MediaSession.cpp
     MediaSystem.cpp
+)
+
+if ((CENC_VERSION STREQUAL "14") OR (CENC_VERSION STREQUAL "15"))
+   list(APPEND SOURCES Policy.cpp)
+endif()
+
+add_library(${DRM_PLUGIN_NAME} SHARED
+    ${SOURCES}
 )
 
 set_target_properties(${DRM_PLUGIN_NAME} PROPERTIES

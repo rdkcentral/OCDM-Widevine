@@ -271,12 +271,6 @@ public:
         _adminLock.Unlock();
     }
 
-    virtual void onKeyStatusesChange(const std::string& session_id, bool has_new_usable_key) {
-        // TODO
-        fprintf(stderr, "TODO: onKeyStatusesChange");
-    }
-
-
 private:
     WPEFramework::Core::CriticalSection _adminLock;
     widevine::Cdm* _cdm;
