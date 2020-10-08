@@ -47,9 +47,17 @@ private:
             : Core::JSON::Container()
             , Certificate()
             , Keybox()
+            , Product()
+            , Company()
+            , Model()
+            , Device()
         {
             Add(_T("certificate"), &Certificate);
             Add(_T("keybox"), &Keybox);
+            Add(_T("product"), &Product);
+            Add(_T("company"), &Company);
+            Add(_T("model"), &Model);
+            Add(_T("device"), &Device);
         }
         ~Config()
         {
@@ -58,6 +66,10 @@ private:
     public:
         Core::JSON::String Certificate;
         Core::JSON::String Keybox;
+        Core::JSON::String Product;
+        Core::JSON::String Company;
+        Core::JSON::String Model;
+        Core::JSON::String Device;
     };
 
 public:
@@ -66,35 +78,6 @@ public:
         , _cdm(nullptr)
         , _host()
         , _sessions() {
-
-        widevine::Cdm::ClientInfo client_info;
-
-        // Set client info that denotes this as the test suite:
-        client_info.product_name = "WPEFramework";
-        client_info.company_name = "www.metrological.com";
-        client_info.model_name = "www";
-
-    #if defined(__linux__)
-        client_info.device_name = "Linux";
-        {
-            struct utsname name;
-            if (!uname(&name)) {
-                client_info.arch_name = name.machine;
-            }
-        }
-#else
-        client_info.device_name = "unknown";
-#endif
-        client_info.build_info = __DATE__;
-
-        // widevine::Cdm::DeviceCertificateRequest cert_request;
-
-        if (widevine::Cdm::kSuccess == widevine::Cdm::initialize(
-                widevine::Cdm::kNoSecureOutput, client_info, &_host, &_host, &_host, static_cast<widevine::Cdm::LogLevel>(0))) {
-	    // Setting the last parameter to true, requres serviceCertificates so the requests can be encrypted. Currently badly supported
-            // in the EME tests, so turn of for now :-)
-            _cdm = widevine::Cdm::create(this, &_host, false);
-        }
     }
     virtual ~WideVine() {
         _adminLock.Lock();
@@ -117,8 +100,45 @@ public:
 
     void Initialize(const WPEFramework::PluginHost::IShell * shell, const std::string& configline)
     {
+        widevine::Cdm::ClientInfo client_info;
+
         Config config;
         config.FromString(configline);
+
+        if (config.Product.IsSet() == true) {
+            client_info.product_name = config.Product.Value();
+        } else {
+            client_info.product_name = "WPEFramework";
+        }
+
+        if (config.Company.IsSet() == true) {
+            client_info.company_name = config.Company.Value();
+        } else {
+            client_info.company_name = "www.metrological.com";
+        }
+
+        if (config.Model.IsSet() == true) {
+            client_info.model_name = config.Model.Value();
+        } else {
+            client_info.model_name = "reference";
+        }
+
+#if defined(__linux__)
+        if (config.Device.IsSet() == true) {
+            client_info.device_name = config.Device.Value();
+        } else {
+            client_info.device_name = "Linux";
+        }
+        {
+            struct utsname name;
+            if (!uname(&name)) {
+                client_info.arch_name = name.machine;
+            }
+        }
+#else
+        client_info.device_name = "Unknown";
+#endif
+        client_info.build_info = __DATE__;
 
         if (config.Keybox.IsSet() == true) {
             Core::SystemInfo::SetEnvironment("WIDEVINE_KEYBOX_PATH", config.Keybox.Value().c_str());
@@ -132,6 +152,12 @@ public:
             } else {
                 _host.PreloadFile(_certificateFilename,  std::string(reinterpret_cast<const char*>(dataBuffer.Buffer()), dataBuffer.Size()));
             }
+        }
+
+        if (widevine::Cdm::kSuccess == widevine::Cdm::initialize(
+                widevine::Cdm::kNoSecureOutput, client_info, &_host,
+                &_host, &_host, static_cast<widevine::Cdm::LogLevel>(0))) {
+            _cdm = widevine::Cdm::create(this, &_host, false);
         }
     }
 
