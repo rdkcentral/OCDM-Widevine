@@ -203,7 +203,7 @@ public:
         CDMi_RESULT dr = CDMi_S_FALSE;
 
         std::string serverCertificate(reinterpret_cast<const char*>(f_pbServerCertificate), f_cbServerCertificate);
-        if (widevine::Cdm::kSuccess == _cdm->setServiceCertificate(serverCertificate)) {
+        if (widevine::Cdm::kSuccess == _cdm->setServiceCertificate(widevine::Cdm::kAllServices, serverCertificate)) {
             dr = CDMi_SUCCESS;
         }
         return dr;
