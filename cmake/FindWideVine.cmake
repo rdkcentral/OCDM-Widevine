@@ -31,7 +31,19 @@
 
 find_path (WIDEVINE_INCLUDE_DIRS NAMES wv_cdm_types.h PATHS "usr/include/" PATH_SUFFIXES "openssl")
 
-find_library(WIDEVINE_LIBRARIES NAME widevine_ce_cdm_shared PATH_SUFFIXES lib)
+find_library(WIDEVINE_LIBRARY NAME widevine_ce_cdm_shared PATH_SUFFIXES lib)
+
+list(APPEND WIDEVINE_LIBRARIES ${WIDEVINE_LIBRARY})
+
+find_library(WIDEVINE_OEMCRYPTO_LIBRARY NAME oec_level3_static PATH_SUFFIXES lib)
+list(APPEND WIDEVINE_LIBRARIES ${WIDEVINE_OEMCRYPTO_LIBRARY})
+
+find_package(WPEFrameworkCore)
+find_package(CompileSettingsDebug)
+list(APPEND WIDEVINE_LIBRARIES ${NAMESPACE}Core::${NAMESPACE}Core)
+
+find_package(deviceinfo)
+list(APPEND WIDEVINE_LIBRARIES deviceinfo::deviceinfo)
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(WIDEVINE DEFAULT_MSG WIDEVINE_INCLUDE_DIRS WIDEVINE_LIBRARIES)
