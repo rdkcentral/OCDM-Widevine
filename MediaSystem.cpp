@@ -242,7 +242,7 @@ public:
         _adminLock.Unlock();
     }
 
-    virtual void onKeyStatusesChange(const std::string& session_id) {
+    virtual void onKeyStatusesChange(const std::string& /*session_id*/, bool /*has_new_usable_key*/) {
     }
 
     virtual void onRemoveComplete(const std::string& session_id) {
