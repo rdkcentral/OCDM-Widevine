@@ -51,6 +51,7 @@ private:
             , Company()
             , Model()
             , Device()
+            , StorageLocation()
         {
             Add(_T("certificate"), &Certificate);
             Add(_T("keybox"), &Keybox);
@@ -58,6 +59,7 @@ private:
             Add(_T("company"), &Company);
             Add(_T("model"), &Model);
             Add(_T("device"), &Device);
+            Add(_T("storagelocation"), &StorageLocation);
         }
         ~Config()
         {
@@ -70,6 +72,7 @@ private:
         Core::JSON::String Company;
         Core::JSON::String Model;
         Core::JSON::String Device;
+        Core::JSON::String StorageLocation;
     };
 
 public:
@@ -142,6 +145,10 @@ public:
 
         if (config.Keybox.IsSet() == true) {
             Core::SystemInfo::SetEnvironment("WIDEVINE_KEYBOX_PATH", config.Keybox.Value().c_str());
+        }
+
+        if (config.StorageLocation.IsSet() == true) {
+            Core::SystemInfo::SetEnvironment("WIDEVINE_STORAGE_PATH", config.StorageLocation.Value().c_str());
         }
 
         if (config.Certificate.IsSet() == true) {
