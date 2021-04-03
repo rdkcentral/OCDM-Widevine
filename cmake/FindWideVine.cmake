@@ -31,23 +31,39 @@
 
 find_path (WIDEVINE_INCLUDE_DIRS NAMES wv_cdm_types.h PATHS "usr/include/" PATH_SUFFIXES "openssl")
 
-find_library(WIDEVINE_OEMCRYPTO_LIBRARY NAME oec_level3_static PATH_SUFFIXES widevine)
-list(APPEND WIDEVINE_LIBRARIES ${WIDEVINE_OEMCRYPTO_LIBRARY})
+set(WV_LIBS  
+    widevine_ce_cdm_static 
+    ssl 
+    metrics_proto 
+    device_files 
+    oec_level3_static 
+    widevine_cdm_core 
+    license_protocol 
+    crypto
+)
 
-find_library(WIDEVINE_LIBRARY NAME widevine_ce_cdm_static PATH_SUFFIXES widevine)
-list(APPEND WIDEVINE_LIBRARIES ${WIDEVINE_LIBRARY})
+list(APPEND WIDEVINE_LIBRARIES "-Wl,--start-group")
+foreach(_library ${WV_LIBS})
+    message(STATUS "looking for ${_library}")
+    
+    find_library(_${_library}_location
+        NAME ${_library} 
+        PATH_SUFFIXES widevine
+    )
+    
+    list(APPEND WIDEVINE_LIBRARIES "${_${_library}_location}")
+endforeach()
+list(APPEND WIDEVINE_LIBRARIES "-Wl,--end-group")
 
-find_library(WIDEVINE_CORE_LIBRARY NAME widevine_cdm_core PATH_SUFFIXES widevine)
-list(APPEND WIDEVINE_LIBRARIES ${WIDEVINE_CORE_LIBRARY})
 
 find_library(PROTO_BUF_LITE_LIBRARY NAME protobuf-lite PATH_SUFFIXES lib)
 list(APPEND WIDEVINE_LIBRARIES ${PROTO_BUF_LITE_LIBRARY})
 
-find_package(WPEFrameworkCore)
-find_package(CompileSettingsDebug)
+find_package(WPEFrameworkCore REQUIRED)
+find_package(CompileSettingsDebug REQUIRED)
 list(APPEND WIDEVINE_LIBRARIES ${NAMESPACE}Core::${NAMESPACE}Core)
 
-find_package(deviceinfo)
+find_package(deviceinfo REQUIRED)
 list(APPEND WIDEVINE_LIBRARIES deviceinfo::deviceinfo)
 
 include(FindPackageHandleStandardArgs)
