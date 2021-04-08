@@ -43,10 +43,16 @@ MediaKeySession::MediaKeySession(widevine::Cdm *cdm, int32_t licenseType)
     , m_initData("")
     , m_initDataType(widevine::Cdm::kCenc)
     , m_licenseType((widevine::Cdm::SessionType)licenseType)
-    , m_sessionId("") {
-  m_cdm->createSession(m_licenseType, &m_sessionId);
+    , m_sessionId("") { 
+  ASSERT(m_cdm->isProvisioned());
 
-  ::memset(m_IV, 0 , sizeof(m_IV));;
+  widevine::Cdm::Status status = m_cdm->createSession(m_licenseType, &m_sessionId);
+
+  if(status != widevine::Cdm::kSuccess){
+    printf("Failed to create a new session: error 0x%04x (%d)\n", status, status);
+  }
+
+  ::memset(m_IV, 0 , sizeof(m_IV));
 }
 
 MediaKeySession::~MediaKeySession(void) {
