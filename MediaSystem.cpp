@@ -22,12 +22,41 @@
 #include <iostream>
 #include <sstream>
 #include <sys/utsname.h>
-#include <core/core.h>
 
+#include <core/core.h>
+#include <plugins/Types.h>
 
 using namespace WPEFramework;
 
 namespace CDMi {
+static constexpr const TCHAR ControllerCallsign[] = _T("Controller");
+
+class ControllerLink : public RPC::SmartInterfaceType<PluginHost::IShell> {
+private:
+    using BaseClass = RPC::SmartInterfaceType<PluginHost::IShell>;
+
+public:
+    ControllerLink()
+        : BaseClass()
+{
+        BaseClass::Open(RPC::CommunicationTimeOut, BaseClass::Connector(), ControllerCallsign);
+    }
+    ~ControllerLink() override
+    {
+        BaseClass::Close(Core::infinite);
+    }
+
+    static ControllerLink& Instance()
+    {
+        static ControllerLink instance;
+        return instance;
+    }
+
+    PluginHost::ISubSystem* SubSystem()
+    {
+        return Interface()->SubSystems();
+    }
+};
 
 class WideVine : public IMediaKeys, public widevine::Cdm::IEventListener
 {
@@ -151,8 +180,26 @@ public:
             Core::SystemInfo::SetEnvironment("WIDEVINE_STORAGE_PATH", config.StorageLocation.Value().c_str());
         }
 
-        if (config.Certificate.IsSet() == true) {
-            Core::DataElementFile dataBuffer(config.Certificate.Value(), Core::File::USER_READ);
+        if ((config.Certificate.IsSet() == true) && (config.Certificate.Value().empty() == false)) {
+            PluginHost::ISubSystem* subsystem = ControllerLink::Instance().SubSystem();
+
+            ASSERT(subsystem != nullptr);
+
+            string storage;
+
+            if ((subsystem != nullptr) && (config.Certificate.Value()[0] != '/')) {
+                const PluginHost::ISubSystem::IProvisioning* provisioning(subsystem->Get<PluginHost::ISubSystem::IProvisioning>());
+                
+                if (provisioning != nullptr) {
+                    storage = provisioning->Storage();
+                    provisioning->Release();
+                }
+                subsystem->Release();
+            }
+
+            TRACE_L1(_T("loading certificate is set to: \'%s\'\n"), string(storage + config.Certificate.Value()).c_str());
+
+            Core::DataElementFile dataBuffer(storage + config.Certificate.Value(), Core::File::USER_READ);
 
             if(dataBuffer.IsValid() == false) {
                 TRACE_L1(_T("Failed to open %s"), config.Certificate.Value().c_str());
