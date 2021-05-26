@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+#include "Module.h"
+
 #include "MediaSession.h"
 #include "HostImplementation.h"
 

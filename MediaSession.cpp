@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "Module.h"
 
 #include "MediaSession.h"
 #include "Policy.h"

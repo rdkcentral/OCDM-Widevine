@@ -20,6 +20,8 @@
 #ifndef WIDEVINE_HOST_IMPLEMENTATION_H
 #define WIDEVINE_HOST_IMPLEMENTATION_H
 
+#include "Module.h"
+
 #include "cdm.h"
 
 #include <core/core.h>
