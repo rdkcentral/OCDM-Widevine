@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "Module.h"
+
 #include <cdm.h>
 #include <cdmi.h>
 
