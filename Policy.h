@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef WV_POLICY_H_
-#define WV_POLICY_H_
+#pragma once
 
 #include "string_conversions.h"
 
@@ -56,5 +55,3 @@ const std::string kCencInitData = a2bs_hex(
     "08011a0d7769646576696e655f746573"
     "74220f73747265616d696e675f636c69"
     "7031");
-
-#endif //WV_POLICY_H_

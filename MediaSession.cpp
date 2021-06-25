@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "Module.h"
 
 #include "MediaSession.h"
 #include "Policy.h"
@@ -43,10 +44,16 @@ MediaKeySession::MediaKeySession(widevine::Cdm *cdm, int32_t licenseType)
     , m_initData("")
     , m_initDataType(widevine::Cdm::kCenc)
     , m_licenseType((widevine::Cdm::SessionType)licenseType)
-    , m_sessionId("") {
-  m_cdm->createSession(m_licenseType, &m_sessionId);
+    , m_sessionId("") { 
+  ASSERT(m_cdm->isProvisioned());
 
-  ::memset(m_IV, 0 , sizeof(m_IV));;
+  widevine::Cdm::Status status = m_cdm->createSession(m_licenseType, &m_sessionId);
+
+  if(status != widevine::Cdm::kSuccess){
+    printf("Failed to create a new session: error 0x%04x (%d)\n", status, status);
+  }
+
+  ::memset(m_IV, 0 , sizeof(m_IV));
 }
 
 MediaKeySession::~MediaKeySession(void) {
@@ -207,7 +214,7 @@ void MediaKeySession::Update(
   std::string keyResponse(reinterpret_cast<const char*>(f_pbKeyMessageResponse),
       f_cbKeyMessageResponse);
   g_lock.Lock();
-  if (widevine::Cdm::kSuccess != m_cdm->update(m_sessionId, keyResponse))
+  if (widevine::Cdm::kSuccess == m_cdm->update(m_sessionId, keyResponse))
      onKeyStatusChange();
   g_lock.Unlock();
 }
@@ -282,7 +289,7 @@ CDMi_RESULT MediaKeySession::Decrypt(
     uint32_t f_cdwSubSampleMapping,
     const uint8_t *f_pbIV,
     uint32_t f_cbIV,
-    const uint8_t *f_pbData,
+    uint8_t *f_pbData,
     uint32_t f_cbData,
     uint32_t *f_pcbOpaqueClearContent,
     uint8_t **f_ppbOpaqueClearContent,
@@ -346,12 +353,8 @@ CDMi_RESULT MediaKeySession::ReleaseClearContent(
     uint32_t f_cbSessionKey,
     const uint32_t  f_cbClearContentOpaque,
     uint8_t  *f_pbClearContentOpaque ){
-  CDMi_RESULT ret = CDMi_S_FALSE;
-  if (f_pbClearContentOpaque) {
-    free(f_pbClearContentOpaque);
-    ret = CDMi_SUCCESS;
-  }
-  return ret;
+  //There is nothing to free due to in-place decryption
+  return CDMi_SUCCESS;
 }
 
 }  // namespace CDMi

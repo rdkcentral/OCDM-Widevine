@@ -17,12 +17,10 @@
  * limitations under the License.
  */
 
-#ifndef WIDEVINE_HOST_IMPLEMENTATION_H
-#define WIDEVINE_HOST_IMPLEMENTATION_H
+#pragma once
 
+#include "Module.h"
 #include "cdm.h"
-#include "override.h"
-
 #include <core/core.h>
 
 namespace CDMi {
@@ -87,21 +85,21 @@ public:
   //
   // widevine::Cdm::IStorage implementation
   // ---------------------------------------------------------------------------
-  virtual bool read(const std::string& name, std::string* data) OVERRIDE;
-  virtual bool write(const std::string& name, const std::string& data) OVERRIDE;
-  virtual bool exists(const std::string& name) OVERRIDE;
-  virtual bool remove(const std::string& name) OVERRIDE;
-  virtual int32_t size(const std::string& name) OVERRIDE;
-  virtual bool list(std::vector<std::string>* names) OVERRIDE;
+  virtual bool read(const std::string& name, std::string* data) override;
+  virtual bool write(const std::string& name, const std::string& data) override;
+  virtual bool exists(const std::string& name) override;
+  virtual bool remove(const std::string& name) override;
+  virtual int32_t size(const std::string& name) override;
+  virtual bool list(std::vector<std::string>* names) override;
 
   // widevine::Cdm::IClock implementation
   // ---------------------------------------------------------------------------
-  virtual int64_t now() OVERRIDE;
+  virtual int64_t now() override;
 
   // widevine::Cdm::ITimer implementation
   // ---------------------------------------------------------------------------
-  virtual void setTimeout(int64_t delay_ms, IClient* client, void* context) OVERRIDE;
-  virtual void cancel(IClient* client) OVERRIDE;
+  virtual void setTimeout(int64_t delay_ms, IClient* client, void* context) override;
+  virtual void cancel(IClient* client) override;
 
 private:
   WPEFramework::Core::TimerType<Timer> _timer;
@@ -109,5 +107,3 @@ private:
 };
 
 } // namespace CDMi
-
-#endif  // WIDEVINE_HOST_IMPLEMENTATION_H
