@@ -289,7 +289,7 @@ CDMi_RESULT MediaKeySession::Decrypt(
     uint32_t f_cdwSubSampleMapping,
     const uint8_t *f_pbIV,
     uint32_t f_cbIV,
-    const uint8_t *f_pbData,
+    uint8_t *f_pbData,
     uint32_t f_cbData,
     uint32_t *f_pcbOpaqueClearContent,
     uint8_t **f_ppbOpaqueClearContent,
@@ -353,12 +353,8 @@ CDMi_RESULT MediaKeySession::ReleaseClearContent(
     uint32_t f_cbSessionKey,
     const uint32_t  f_cbClearContentOpaque,
     uint8_t  *f_pbClearContentOpaque ){
-  CDMi_RESULT ret = CDMi_S_FALSE;
-  if (f_pbClearContentOpaque) {
-    free(f_pbClearContentOpaque);
-    ret = CDMi_SUCCESS;
-  }
-  return ret;
+  //There is nothing to free due to in-place decryption
+  return CDMi_SUCCESS;
 }
 
 }  // namespace CDMi
