@@ -35,7 +35,8 @@ find_package(WideVine REQUIRED)
 set(PLUGIN_SOURCES
     HostImplementation.cpp
     MediaSession.cpp
-    MediaSystem.cpp)
+    MediaSystem.cpp
+    Module.cpp)
 
 # add the library
 add_library(${PLUGIN_NAME} SHARED ${PLUGIN_SOURCES})
