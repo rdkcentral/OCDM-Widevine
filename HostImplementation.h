@@ -21,7 +21,6 @@
 
 #include "Module.h"
 #include "cdm.h"
-#include <core/core.h>
 
 namespace CDMi {
 
