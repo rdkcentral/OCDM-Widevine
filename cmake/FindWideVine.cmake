@@ -1,8 +1,8 @@
-# - Try to find openCDMi
+# - Try to find Widevine
 # Once done this will define
-#  WIDEVINE_FOUND - System has libocdmi
-#  WIDEVINE_INCLUDE_DIRS - The libocdmi include directories
-#  WIDEVINE_LIBRARIES - The libraries needed to use libcdmi
+#  WIDEVINE_FOUND - System has widevine
+#  WIDEVINE_INCLUDE_DIRS - The widevine include directories
+#  WIDEVINE_LIBRARIES - The libraries needed to use widevine
 #
 # Copyright (C) 2016 TATA ELXSI
 # Copyright (C) 2016 Metrological.
@@ -67,6 +67,6 @@ find_package(deviceinfo REQUIRED)
 list(APPEND WIDEVINE_LIBRARIES deviceinfo::deviceinfo)
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(WIDEVINE DEFAULT_MSG WIDEVINE_INCLUDE_DIRS WIDEVINE_LIBRARIES)
+find_package_handle_standard_args(Widevine DEFAULT_MSG WIDEVINE_INCLUDE_DIRS WIDEVINE_LIBRARIES)
 
 mark_as_advanced(WIDEVINE_INCLUDE_DIRS WIDEVINE_LIBRARIES)
