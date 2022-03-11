@@ -286,8 +286,8 @@ CDMi_RESULT MediaKeySession::Init(
 }
 
 CDMi_RESULT MediaKeySession::Decrypt(
-    const uint8_t *f_pbSessionKey,
-    uint32_t f_cbSessionKey,
+    const uint8_t *f_pbSessionKey VARIABLE_IS_NOT_USED,
+    uint32_t f_cbSessionKey VARIABLE_IS_NOT_USED,
     const EncryptionScheme encryptionScheme,
     const EncryptionPattern& pattern,
     const uint8_t *f_pbIV,
@@ -366,10 +366,10 @@ CDMi_RESULT MediaKeySession::Decrypt(
 }
 
 CDMi_RESULT MediaKeySession::ReleaseClearContent(
-    const uint8_t *f_pbSessionKey,
-    uint32_t f_cbSessionKey,
-    const uint32_t  f_cbClearContentOpaque,
-    uint8_t  *f_pbClearContentOpaque ){
+    const uint8_t *f_pbSessionKey VARIABLE_IS_NOT_USED,
+    uint32_t f_cbSessionKey VARIABLE_IS_NOT_USED,
+    const uint32_t  f_cbClearContentOpaque VARIABLE_IS_NOT_USED,
+    uint8_t  *f_pbClearContentOpaque VARIABLE_IS_NOT_USED) {
   //There is nothing to free due to in-place decryption
   return CDMi_SUCCESS;
 }
