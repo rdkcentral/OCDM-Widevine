@@ -132,7 +132,7 @@ public:
         }
     }
 
-    void Initialize(const WPEFramework::PluginHost::IShell * shell, const std::string& configline)
+    void Initialize(const WPEFramework::PluginHost::IShell * shell VARIABLE_IS_NOT_USED, const std::string& configline)
     {
         widevine::Cdm::ClientInfo client_info;
 
