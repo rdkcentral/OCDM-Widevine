@@ -81,7 +81,7 @@ public:
 
     // Callback Interfaces from widevine::IClientNotification
     // -------------------------------------------------------
-    void onMessageUrl(const std::string& f_serverUrl) {}
+    void onMessageUrl(const std::string&) {}
     void onMessage(widevine::Cdm::MessageType f_messageType, const std::string& f_message);
     void onKeyStatusChange();
     void onRemoveComplete();
