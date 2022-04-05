@@ -32,34 +32,6 @@ using namespace WPEFramework;
 
 namespace CDMi {
 static constexpr const TCHAR ControllerCallsign[] = _T("Controller");
-
-class ControllerLink : public RPC::SmartInterfaceType<PluginHost::IShell> {
-private:
-    using BaseClass = RPC::SmartInterfaceType<PluginHost::IShell>;
-
-public:
-    ControllerLink()
-        : BaseClass()
-{
-        BaseClass::Open(RPC::CommunicationTimeOut, BaseClass::Connector(), ControllerCallsign);
-    }
-    ~ControllerLink() override
-    {
-        BaseClass::Close(Core::infinite);
-    }
-
-    static ControllerLink& Instance()
-    {
-        static ControllerLink instance;
-        return instance;
-    }
-
-    PluginHost::ISubSystem* SubSystem()
-    {
-        return Interface()->SubSystems();
-    }
-};
-
 class WideVine : public IMediaKeys, public widevine::Cdm::IEventListener
 {
 private:
@@ -132,7 +104,7 @@ public:
         }
     }
 
-    void Initialize(const WPEFramework::PluginHost::IShell * shell VARIABLE_IS_NOT_USED, const std::string& configline)
+    void Initialize(const WPEFramework::PluginHost::IShell* shell, const std::string& configline)
     {
         widevine::Cdm::ClientInfo client_info;
 
@@ -183,7 +155,7 @@ public:
         }
 
         if ((config.Certificate.IsSet() == true) && (config.Certificate.Value().empty() == false)) {
-            PluginHost::ISubSystem* subsystem = ControllerLink::Instance().SubSystem();
+            PluginHost::ISubSystem* subsystem = const_cast<WPEFramework::PluginHost::IShell*>(shell)->SubSystems();//ControllerLink::Instance().SubSystem();
 
             ASSERT(subsystem != nullptr);
 
