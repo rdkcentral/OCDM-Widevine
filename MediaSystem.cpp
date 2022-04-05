@@ -31,7 +31,6 @@
 using namespace WPEFramework;
 
 namespace CDMi {
-static constexpr const TCHAR ControllerCallsign[] = _T("Controller");
 class WideVine : public IMediaKeys, public widevine::Cdm::IEventListener
 {
 private:
@@ -155,7 +154,10 @@ public:
         }
 
         if ((config.Certificate.IsSet() == true) && (config.Certificate.Value().empty() == false)) {
-            PluginHost::ISubSystem* subsystem = const_cast<WPEFramework::PluginHost::IShell*>(shell)->SubSystems();//ControllerLink::Instance().SubSystem();
+
+            ASSERT(shell != nullptr);
+
+	    PluginHost::ISubSystem* subsystem = const_cast<WPEFramework::PluginHost::IShell*>(shell)->SubSystems();
 
             ASSERT(subsystem != nullptr);
 
