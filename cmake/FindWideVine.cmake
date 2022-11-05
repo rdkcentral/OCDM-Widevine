@@ -63,8 +63,8 @@ find_package(WPEFrameworkCore REQUIRED)
 find_package(CompileSettingsDebug REQUIRED)
 list(APPEND WIDEVINE_LIBRARIES ${NAMESPACE}Core::${NAMESPACE}Core)
 
-find_package(deviceinfo REQUIRED)
-list(APPEND WIDEVINE_LIBRARIES deviceinfo::deviceinfo)
+find_package(${NAMESPACE}DeviceInfo REQUIRED)
+list(APPEND WIDEVINE_LIBRARIES ${NAMESPACE}DeviceInfo::${NAMESPACE}DeviceInfo)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Widevine DEFAULT_MSG WIDEVINE_INCLUDE_DIRS WIDEVINE_LIBRARIES)
