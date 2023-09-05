@@ -60,8 +60,8 @@ public:
     virtual CDMi_RESULT Decrypt(
         const uint8_t *f_pbSessionKey,
         uint32_t f_cbSessionKey,
-        const uint32_t *f_pdwSubSampleMapping,
-        uint32_t f_cdwSubSampleMapping,
+        const EncryptionScheme encryptionScheme,
+        const EncryptionPattern& pattern,
         const uint8_t *f_pbIV,
         uint32_t f_cbIV,
         uint8_t *f_pbData,
@@ -81,7 +81,7 @@ public:
 
     // Callback Interfaces from widevine::IClientNotification
     // -------------------------------------------------------
-    void onMessageUrl(const std::string& f_serverUrl) {}
+    void onMessageUrl(const std::string&) {}
     void onMessage(widevine::Cdm::MessageType f_messageType, const std::string& f_message);
     void onKeyStatusChange();
     void onRemoveComplete();

@@ -22,3 +22,6 @@
 #ifndef MODULE_NAME
 #define MODULE_NAME OCDM_Widevine
 #endif
+
+#include <core/core.h>
+#include <plugins/plugins.h>

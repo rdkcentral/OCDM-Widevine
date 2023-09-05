@@ -214,8 +214,11 @@ void MediaKeySession::Update(
   std::string keyResponse(reinterpret_cast<const char*>(f_pbKeyMessageResponse),
       f_cbKeyMessageResponse);
   g_lock.Lock();
-  if (widevine::Cdm::kSuccess == m_cdm->update(m_sessionId, keyResponse))
+  widevine::Cdm::Status status = m_cdm->update(m_sessionId, keyResponse);
+  if (widevine::Cdm::kSuccess == status)
      onKeyStatusChange();
+  else
+     onKeyStatusError(status);
   g_lock.Unlock();
 }
 
@@ -283,10 +286,10 @@ CDMi_RESULT MediaKeySession::Init(
 }
 
 CDMi_RESULT MediaKeySession::Decrypt(
-    const uint8_t *f_pbSessionKey,
-    uint32_t f_cbSessionKey,
-    const uint32_t *f_pdwSubSampleMapping,
-    uint32_t f_cdwSubSampleMapping,
+    const uint8_t *f_pbSessionKey VARIABLE_IS_NOT_USED,
+    uint32_t f_cbSessionKey VARIABLE_IS_NOT_USED,
+    const EncryptionScheme encryptionScheme,
+    const EncryptionPattern& pattern,
     const uint8_t *f_pbIV,
     uint32_t f_cbIV,
     uint8_t *f_pbData,
@@ -334,7 +337,21 @@ CDMi_RESULT MediaKeySession::Decrypt(
       input.key_id_length = (it->first).size();
       input.iv = m_IV;
       input.iv_length = sizeof(m_IV);
-
+      input.pattern.encrypted_blocks = pattern.encrypted_blocks;
+      input.pattern.clear_blocks = pattern.clear_blocks;
+      switch (encryptionScheme) {
+          case AesCtr_Cenc:
+          case AesCtr_Cens:
+              input.encryption_scheme = widevine::Cdm::kAesCtr;
+              break;
+          case AesCbc_Cbc1:
+          case AesCbc_Cbcs:
+              input.encryption_scheme = widevine::Cdm::kAesCbc;
+              break;
+          default:
+              input.encryption_scheme = widevine::Cdm::kClear;
+              break;
+      }
       if (widevine::Cdm::kSuccess == m_cdm->decrypt(input, output)) {
         // Return decrypted content in place of the input buffer.
         *f_ppbOpaqueClearContent = const_cast<uint8_t*>(f_pbData);
@@ -349,10 +366,10 @@ CDMi_RESULT MediaKeySession::Decrypt(
 }
 
 CDMi_RESULT MediaKeySession::ReleaseClearContent(
-    const uint8_t *f_pbSessionKey,
-    uint32_t f_cbSessionKey,
-    const uint32_t  f_cbClearContentOpaque,
-    uint8_t  *f_pbClearContentOpaque ){
+    const uint8_t *f_pbSessionKey VARIABLE_IS_NOT_USED,
+    uint32_t f_cbSessionKey VARIABLE_IS_NOT_USED,
+    const uint32_t  f_cbClearContentOpaque VARIABLE_IS_NOT_USED,
+    uint8_t  *f_pbClearContentOpaque VARIABLE_IS_NOT_USED) {
   //There is nothing to free due to in-place decryption
   return CDMi_SUCCESS;
 }
