@@ -173,12 +173,12 @@ public:
                 subsystem->Release();
             }
 
-            TRACE_L1(_T("loading certificate is set to: \'%s\'\n"), string(storage + config.Certificate.Value()).c_str());
+            TRACE(Trace::Information, (_T("loading certificate is set to: \'%s\'\n"), string(storage + config.Certificate.Value()).c_str()));
 
             Core::DataElementFile dataBuffer(storage + config.Certificate.Value(), Core::File::USER_READ);
 
             if(dataBuffer.IsValid() == false) {
-                TRACE_L1(_T("Failed to open %s"), config.Certificate.Value().c_str());
+                TRACE(Trace::Warning, (_T("Failed to open %s"), config.Certificate.Value().c_str()));
             } else {
                 _host.PreloadFile(_certificateFilename,  std::string(reinterpret_cast<const char*>(dataBuffer.Buffer()), dataBuffer.Size()));
             }
