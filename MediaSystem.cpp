@@ -28,7 +28,7 @@
 #include <core/core.h>
 #include <plugins/Types.h>
 
-using namespace WPEFramework;
+using namespace Thunder;
 
 namespace CDMi {
 class WideVine : public IMediaKeys, public widevine::Cdm::IEventListener
@@ -103,7 +103,7 @@ public:
         }
     }
 
-    void Initialize(const WPEFramework::PluginHost::IShell* shell, const std::string& configline)
+    void Initialize(const Thunder::PluginHost::IShell* shell, const std::string& configline)
     {
         widevine::Cdm::ClientInfo client_info;
 
@@ -113,7 +113,7 @@ public:
         if (config.Product.IsSet() == true) {
             client_info.product_name = config.Product.Value();
         } else {
-            client_info.product_name = "WPEFramework";
+            client_info.product_name = "Thunder";
         }
 
         if (config.Company.IsSet() == true) {
@@ -157,7 +157,7 @@ public:
 
             ASSERT(shell != nullptr);
 
-	    PluginHost::ISubSystem* subsystem = const_cast<WPEFramework::PluginHost::IShell*>(shell)->SubSystems();
+	    PluginHost::ISubSystem* subsystem = const_cast<Thunder::PluginHost::IShell*>(shell)->SubSystems();
 
             ASSERT(subsystem != nullptr);
 
@@ -311,7 +311,7 @@ public:
     }
 
 private:
-    WPEFramework::Core::CriticalSection _adminLock;
+    Thunder::Core::CriticalSection _adminLock;
     widevine::Cdm* _cdm;
     HostImplementation _host;
     SessionMap _sessions;

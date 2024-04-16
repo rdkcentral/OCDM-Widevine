@@ -20,7 +20,7 @@
 #include "HostImplementation.h"
 
 using namespace widevine;
-using namespace WPEFramework;
+using namespace Thunder;
 
 namespace CDMi {
 

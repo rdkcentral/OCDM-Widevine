@@ -101,7 +101,7 @@ public:
   virtual void cancel(IClient* client) override;
 
 private:
-  WPEFramework::Core::TimerType<Timer> _timer;
+  Thunder::Core::TimerType<Timer> _timer;
   StorageMap _files;
 };
 
