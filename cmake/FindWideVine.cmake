@@ -59,7 +59,7 @@ list(APPEND WIDEVINE_LIBRARIES "-Wl,--end-group")
 find_library(PROTO_BUF_LITE_LIBRARY NAME protobuf-lite PATH_SUFFIXES lib)
 list(APPEND WIDEVINE_LIBRARIES ${PROTO_BUF_LITE_LIBRARY})
 
-find_package(WPEFrameworkCore REQUIRED)
+find_package(ThunderCore REQUIRED)
 find_package(CompileSettingsDebug REQUIRED)
 list(APPEND WIDEVINE_LIBRARIES ${NAMESPACE}Core::${NAMESPACE}Core)
 
