@@ -19,38 +19,52 @@ cmake_minimum_required(VERSION 3.3)
 
 project(Widevine)
 
-find_package(Thunder)
+find_package(WPEFramework)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-set(PLUGIN_NAME Widevine)
-set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
+set(DRM_PLUGIN_NAME Widevine)
+set(MODULE_NAME ${NAMESPACE}${DRM_PLUGIN_NAME})
 
 # This contains all kinds of plugins (publicely available, so they all need the plugin support library !!
 
+find_package(PkgConfig REQUIRED)
 find_package(${NAMESPACE}Core REQUIRED)
-find_package(CompileSettingsDebug REQUIRED)
 find_package(WideVine REQUIRED)
 
-set(PLUGIN_SOURCES
+set(DRM_PLUGIN_SOURCES
     HostImplementation.cpp
     MediaSession.cpp
     MediaSystem.cpp
     Module.cpp)
 
 # add the library
-add_library(${PLUGIN_NAME} SHARED ${PLUGIN_SOURCES})
-target_compile_definitions(${PLUGIN_NAME} PRIVATE ${WIDEVINE_FLAGS})
-target_include_directories(${PLUGIN_NAME} PRIVATE ${PLUGINS_INCLUDE_DIR} ${WIDEVINE_INCLUDE_DIRS})
-target_link_libraries(${PLUGIN_NAME} 
-    PRIVATE 
-        ${WIDEVINE_LIBRARIES}
+add_library(${DRM_PLUGIN_NAME} SHARED ${DRM_PLUGIN_SOURCES})
+
+target_include_directories(${DRM_PLUGIN_NAME}
+    PRIVATE
+        ../widevine/include
+        ../widevine/TATA_include
+        ../widevine/util/include)
+
+target_link_libraries(${DRM_PLUGIN_NAME}
         ${NAMESPACE}Core::${NAMESPACE}Core
-)
+        liboec_ref_shared.so
+        libwidevine_ce_cdm_shared.so
+        crypto curl ssl rt pthread)
 
-set_target_properties(${PLUGIN_NAME} PROPERTIES SUFFIX ".drm")
-set_target_properties(${PLUGIN_NAME} PROPERTIES PREFIX "")
+set_target_properties(${DRM_PLUGIN_NAME} PROPERTIES SUFFIX ".drm")
+set_target_properties(${DRM_PLUGIN_NAME} PROPERTIES PREFIX "")
 
-install(TARGETS ${PLUGIN_NAME}
-    PERMISSIONS OWNER_READ GROUP_READ
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${NAMESPACE}/OCDM)
+# Enable SVP.
+#if("${RDK_SVP}" STREQUAL "ENABLED")
+    message(STATUS "Using RDK_SVP")
+    add_definitions (-DUSE_SVP)
+    target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/include/gstreamer-1.0)
+    target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/include/glib-2.0)
+    target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/lib/glib-2.0/include)
+    target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/include/realtek/genericLinux/include)
+    target_link_libraries(${DRM_PLUGIN_NAME} gstsvpext)
+#endif()
+
+install(TARGETS ${DRM_PLUGIN_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${NAMESPACE}/OCDM)
