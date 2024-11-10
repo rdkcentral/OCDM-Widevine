@@ -74,18 +74,12 @@ using namespace std;
 namespace CDMi {
 
 // Staging Provisioning Server
-const std::string kCpStagingProvisioningServerUrl =
-    "https://staging-www.sandbox.googleapis.com/"
-    "certificateprovisioning/v1/devicecertificates/create"
-    "?key=AIzaSyB-5OLKTx2iU5mko18DfdwK5611JIjbUhE";
+const std::string kCpStagingProvisioningServerUrl;
 
 // URL for Google Provisioning Server.
 // The provisioning server supplies the certificate that is needed
 // to communicate with the License Server.
-const std::string kProvisioningServerUrl =
-    "https://www.googleapis.com/"
-    "certificateprovisioning/v1/devicecertificates/create"
-    "?key=AIzaSyB-5OLKTx2iU5mko18DfdwK5611JIjbUhE";
+const std::string kProvisioningServerUrl;
 
 // NOTE: Provider ID = widevine.com
 const std::string kCpProductionServiceCertificate = wvcdm::a2bs_hex(
