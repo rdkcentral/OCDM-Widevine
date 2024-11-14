@@ -74,12 +74,18 @@ using namespace std;
 namespace CDMi {
 
 // Staging Provisioning Server
-const std::string kCpStagingProvisioningServerUrl;
+const std::string kCpStagingProvisioningServerUrl =
+    "https://staging-www.sandbox.googleapis.com/"
+    "certificateprovisioning/v1/devicecertificates/create"
+    "?key=AIzaSyB-5OLKTx2iU5mko18DfdwK5611JIjbUhE";
 
 // URL for Google Provisioning Server.
 // The provisioning server supplies the certificate that is needed
 // to communicate with the License Server.
-const std::string kProvisioningServerUrl;
+const std::string kProvisioningServerUrl =
+    "https://www.googleapis.com/"
+    "certificateprovisioning/v1/devicecertificates/create"
+    "?key=AIzaSyB-5OLKTx2iU5mko18DfdwK5611JIjbUhE";
 
 // NOTE: Provider ID = widevine.com
 const std::string kCpProductionServiceCertificate = wvcdm::a2bs_hex(
@@ -907,229 +913,6 @@ CDMi_RESULT MediaKeySession::Decrypt(
 #endif
   return status;
 }
-
-#if 0
-CDMi_RESULT MediaKeySession::Decrypt(
-    const uint8_t *f_pbSessionKey,
-    uint32_t f_cbSessionKey,
-    const EncryptionScheme encryptionScheme,
-    const EncryptionPattern& pattern,
-    const uint8_t *f_pbIV,
-    uint32_t f_cbIV,
-    uint8_t* f_pbData,
-    uint32_t f_cbData,
-    uint32_t *f_pcbOpaqueClearContent,
-    uint8_t **f_ppbOpaqueClearContent,
-    const uint8_t keyIdLength,
-    const uint8_t* keyId,
-    bool initWithLast15)
-{
-  bool useSVP = true;
-#if defined(DEBUG)
-  ENT_WV;
-  cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ <<"] f_cbData: "<< f_cbData << "\tencryptionScheme: " << encryptScheme <<  "\tcryptoBlocks: " << cryptoBlocks << "\tclearBlocks: " << clearBlocks;
-  cout << "\tuseSVP: " << useSVP << endl;
-  cout << "\n[RP-DEBUG] wpeframework-ocdm-widevine Decrypt:  Width : " <<f_dwStreamWidth<< "\t Height : " <<f_dwStreamHeight<<endl;
-#endif 
-
-  g_lock.Lock();
-  widevine::Cdm::KeyStatusMap map;
-  std::string keyStatus;
-
-  CDMi_RESULT status = CDMi_S_FALSE;
-  *f_pcbOpaqueClearContent = 0;
-  uint32_t actualDataLength = 0;
-  void *DstPhys = NULL;
-#ifdef USE_SVP
-  RtkSecureMemory *rtkmem = NULL;
-#endif
-
-  memcpy(m_IV, f_pbIV, (f_cbIV > 16 ? 16 : f_cbIV));
-  if (f_cbIV < 16) {
-    memset(&(m_IV[f_cbIV]), 0, 16 - f_cbIV);
-  }
-
-  if (widevine::Cdm::kSuccess == m_cdm->getKeyStatuses(m_sessionId, &map)) {
-#if defined(DEBUG)
-    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] m_cdm->getKeyStatuses is SUCCESS" << endl;
-#endif
-    widevine::Cdm::KeyStatusMap::iterator it;
-    if(keyIdLength > 0) {
-      // if keyid is provided, find it in the map
-      std::string keyIdString((const char*) keyId, (size_t) keyIdLength);
-#if defined(DEBUG)
-      cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] KeyIdString: " << keyIdString.c_str() << endl;
-#endif
-      it = map.find(keyIdString);
-    } else {
-      // if no keyid is provided, use the first one in the map
-#if defined(DEBUG)
-      cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] keyid is not provided" << endl;
-#endif
-      it = map.begin();
-    }
-
-    // FIXME: We just check the first key? How do we know that's the Widevine key and not, say, a PlayReady one?
-    if (widevine::Cdm::kUsable == it->second) {
-	    //FIXME: For now we are assuming that the all the data that is coming in f_pbData
-	    // has subsample count, subsample buffer followed by the data to be decrypted
-	    // format is 
-	    // |subsamplecount|subsamplebuffer|encrypteddata|
-	    // note: subsample count is uint32_t
-	    // Here we will sepreate each of these to create the decryptSample
-	    widevine::Cdm::Sample decryptSample;
-	    uint8_t *data = const_cast<uint8_t*>(f_pbData);
-	    uint16_t inClear = 0;
-	    uint32_t inEncrypted = 0;
-	    uint32_t subSampleCount = 0;
-	    uint8_t *dataItr = data;
-
-	    // 1. read the subsample count
-	    memcpy(&subSampleCount, data, sizeof(subSampleCount));
-	    dataItr += sizeof(subSampleCount);
-
-#ifdef USE_SVP
-      if (useSVP)
-      {
-        actualDataLength = f_cbData - sizeof(subSampleCount) - (subSampleCount * (sizeof(inClear) + sizeof(inEncrypted))) - svp_token_size();
-
-        // Allocate secure buffer for decryption.
-        rtkmem = rtk_secure_mem_new(actualDataLength, RTKMEM_VIDEO);
-        DstPhys = rtkmem->phys_addr;
-      }
-      else
-#endif
-      {
-	      actualDataLength = f_cbData - sizeof(subSampleCount) - (subSampleCount * (sizeof(inClear) + sizeof(inEncrypted))); //f_cbData - length of metadata 
-      }
-#if defined(DEBUG)
-	    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] actualDataLength: " << actualDataLength << endl;
-#endif
-
-	    widevine::Cdm::Subsample* subSamplesPtr = (widevine::Cdm::Subsample *)malloc(subSampleCount * sizeof(widevine::Cdm::Subsample));
-	    if (subSamplesPtr) {
-		    //2. read back the subsample buffer
-		    for (unsigned int position = 0; position < subSampleCount; position++) {
-			    inClear = 0;
-          inEncrypted = 0;
-
-			    memcpy(&inClear, dataItr, sizeof(inClear));
-			    dataItr += sizeof(inClear);
-			    memcpy(&inEncrypted, dataItr, sizeof(inEncrypted));
-			    dataItr += sizeof(inEncrypted);
-
-			    subSamplesPtr[position].clear_bytes = ntohs(inClear);
-			    subSamplesPtr[position].protected_bytes = ntohl(inEncrypted);
-
-#if defined(DEBUG)
-			    cout << "[CHECK] ---- " << position << " clear(" << ntohs(inClear) << ") enc(" << ntohl(inEncrypted) <<")" <<endl;
-#endif
-		    }
-	    } else {
-		    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] Failed to allocate memory" << endl;
-		    // there is no point in progressing without subSamplesPtr lets retusn failure
-  		    return status;
-	    }
-
-#if defined(DEBUG)
- 	    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] subSampleCount: " << subSampleCount << endl;
-#endif
-            //3. at this point dataItr points to the buffer to be decrypted
-	    decryptSample.input.data = dataItr;
-	    decryptSample.input.data_length = actualDataLength;
-	    decryptSample.input.iv = m_IV;
-	    decryptSample.input.iv_length = sizeof(m_IV);
-	    decryptSample.input.subsamples = subSamplesPtr;
-	    decryptSample.input.subsamples_length = subSampleCount;
-
-	    if (useSVP)
-		    decryptSample.output.data = DstPhys;
-	    else 
-		    decryptSample.output.data = dataItr;
-
-	    decryptSample.output.data_offset = 0;
-	    decryptSample.output.data_length = actualDataLength;
-
-	    widevine::Cdm::DecryptionBatch decryptionBatch;
-	    decryptionBatch.key_id = keyId;
-	    decryptionBatch.key_id_length = keyIdLength;
-	    decryptionBatch.samples = &decryptSample;
-	    decryptionBatch.samples_length = 1;
-	    decryptionBatch.pattern.encrypted_blocks = pattern.encrypted_blocks;
-	    decryptionBatch.pattern.clear_blocks = pattern.clear_blocks;
-	    if (useSVP) {
-		    decryptionBatch.is_secure = true;
-		    decryptionBatch.is_video = true;
-	    } else {
-		    decryptionBatch.is_secure = false;
-		    decryptionBatch.is_video = false;
-	    }
-
-	    switch (encryptionScheme) {
-		    case 0:
-			    decryptionBatch.encryption_scheme = widevine::Cdm::kAesCtr;
-#if defined(DEBUG)
-			    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] Inside kAesCtr" << endl;
-#endif
-			    break;
-		    case 1:
-			    decryptionBatch.encryption_scheme = widevine::Cdm::kAesCbc;
-#if defined(DEBUG)
-			    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] Inside kAesCbc" << endl;
-#endif
-			    break;
-	    }
-	    if (widevine::Cdm::kSuccess == m_cdm->decrypt(m_sessionId, decryptionBatch)) {
-		    if (!useSVP) {
-			    *f_ppbOpaqueClearContent = static_cast<uint8_t *>(decryptionBatch.samples[0].output.data);
-			    *f_pcbOpaqueClearContent = decryptionBatch.samples[0].output.data_length;
-		    } else{
-#ifdef USE_SVP
-          Sec_OpaqueBufferHandle *desc = NULL;
-          desc = (Sec_OpaqueBufferHandle*)calloc(sizeof(Sec_OpaqueBufferHandle), 1);
-          desc->dataBufSize = actualDataLength;
-          desc->ion_fd = rtkmem->ion_fd;
-          desc->map_fd = rtkmem->ion_sharefd;
-          desc->rtkmem_handle = (void *)rtkmem->handle;
-
-          void* secToken = NULL;
-          svp_buffer_alloc_token(&secToken);
-          svp_buffer_to_token(m_pSVPContext, (void *)desc, secToken);
-          memcpy((void *)f_pbData, secToken, svp_token_size());
-          svp_buffer_free_token(secToken);
-          //TODO: note the return token data and size
-#endif
-			    *f_ppbOpaqueClearContent = const_cast<uint8_t*>(f_pbData);
-			    *f_pcbOpaqueClearContent = f_cbData;
-		    } 
-
-		    status = CDMi_SUCCESS;
-#if defined(DEBUG)
-		    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] decryption success..! and status: " << status << endl;
-#endif
-	    }else{
-		    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] decryption failed..!" << endl;
-#ifdef USE_SVP
-        // Free decrypted secure buffer.
-        rtk_secure_mem_free(rtkmem);
-#endif
-	    }
-
-	    if (subSamplesPtr) {
-		    free(subSamplesPtr);
-		    subSamplesPtr = NULL;
-      }
-    }
-  }
-  g_lock.Unlock();
-#if defined(DEBUG)
-  cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] status: " << status << endl;
-  EXT_WV;
-#endif
-  return status;
-}
-
-#endif
 
 CDMi_RESULT MediaKeySession::ReleaseClearContent(
     const uint8_t *f_pbSessionKey,

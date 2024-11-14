@@ -72,23 +72,6 @@ public:
         const SampleInfo*        sampleInfo,      // Information required to decrypt Sample
         const IStreamProperties* properties);
 
-#if 0
-    virtual CDMi_RESULT Decrypt(
-        const uint8_t *f_pbSessionKey,
-        uint32_t f_cbSessionKey,
-        const EncryptionScheme encryptionScheme,
-        const EncryptionPattern& pattern,
-        const uint8_t *f_pbIV,
-        uint32_t f_cbIV,
-        uint8_t* f_pbData,
-        uint32_t f_cbData,
-        uint32_t *f_pcbOpaqueClearContent,
-        uint8_t **f_ppbOpaqueClearContent,
-        const uint8_t keyIdLength,
-        const uint8_t* keyId,
-        bool initWithLast15);
-#endif
-
     virtual CDMi_RESULT ReleaseClearContent(
         const uint8_t *f_pbSessionKey,
         uint32_t f_cbSessionKey,
