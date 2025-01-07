@@ -37,32 +37,6 @@
 #include "http_socket.cpp"
 #include "license_request.cpp"
 
-#ifdef USE_SVP
-#include "gst_svp_meta.h"
-
-typedef struct Sec_OpaqueBufferHandle_struct
-{
-    uint32_t dataBufSize;
-    //TEEC_Session *sess;
-    uint32_t align;
-    int ion_fd;
-    int map_fd;
-    //TEEC_SharedMemory register_shm;
-    void *rtkmem_handle;
-} Sec_OpaqueBufferHandle;
-
-typedef struct SecureBufferInfo_struct
-{
-    uint32_t secureBufSize;
-    void *pSecBufHandle;
-    void *pPhysAddr;
-    void *pVirtualAddr;
-    uint32_t align;
-    int ion_fd;
-    int map_fd;
-} SecureBufferInfo;
-#endif
-
 #define NYI_KEYSYSTEM "keysystem-placeholder"
 
 //#define DEBUG
@@ -283,6 +257,18 @@ MediaKeySession::MediaKeySession(widevine::Cdm *cdm, int32_t licenseType)
   gst_svp_ext_get_context(&m_pSVPContext, Client, m_rpcID);
 #endif
 
+#ifdef USE_SVP
+  m_stSecureBuffInfo.bCreateSecureMemRegion = true;
+  m_stSecureBuffInfo.SecureMemRegionSize = 512 * 1024;
+
+  if( 0 != svp_allocate_secure_buffers(m_pSVPContext, (void**)&m_stSecureBuffInfo, nullptr, nullptr, m_stSecureBuffInfo.SecureMemRegionSize))
+  {
+#if defined(DEBUG)
+    cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\tsecure memory, allocate failed " << endl;
+#endif
+  }
+#endif
+
 #if defined(DEBUG) 
   EXT_WV;
 #endif
@@ -292,6 +278,7 @@ MediaKeySession::~MediaKeySession(void) {
 #ifdef USE_SVP
   gst_svp_ext_free_context(m_pSVPContext);
 #endif
+  Close();
 }
 
 
@@ -554,15 +541,17 @@ void MediaKeySession::Update(
 #if defined(DEBUG)
   ENT_WV;
 #endif
+  widevine::Cdm::Status ret = widevine::Cdm::kSuccess;
   std::string keyResponse(reinterpret_cast<const char*>(f_pbKeyMessageResponse),
       f_cbKeyMessageResponse);
 #if defined(DEBUG)
   cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\tKey Response: " << keyResponse.c_str() << endl;
 #endif
   g_lock.Lock();
-  if (widevine::Cdm::kSuccess == m_cdm->update(m_sessionId, keyResponse)) {
-     onKeyStatusChange();
+  if (widevine::Cdm::kSuccess != (ret = m_cdm->update(m_sessionId, keyResponse))) {
+      onKeyStatusError(ret);
   }
+  onKeyStatusChange();
   g_lock.Unlock();
 #if defined(DEBUG)
   EXT_WV;
@@ -603,6 +592,19 @@ CDMi_RESULT MediaKeySession::Close(void) {
   ENT_WV;
 #endif
   CDMi_RESULT status = CDMi_S_FALSE;
+
+#if defined(USE_SVP)
+  m_stSecureBuffInfo.bReleaseSecureMemRegion = true;
+  if(0 != svp_release_secure_buffers(m_pSVPContext, (void*)&m_stSecureBuffInfo, nullptr, nullptr, 0))
+  {
+      fprintf(stderr, "[%s:%d]  secure memory, free failed",__FUNCTION__,__LINE__);
+  }
+  else {
+      m_stSecureBuffInfo.bCreateSecureMemRegion = false;
+      m_stSecureBuffInfo.SecureMemRegionSize = 0;
+  }
+#endif
+
   g_lock.Lock();
   if (widevine::Cdm::kSuccess == m_cdm->close(m_sessionId)) {
     status = CDMi_SUCCESS;
@@ -702,7 +704,25 @@ CDMi_RESULT MediaKeySession::SetParameter(const std::string& name, const std::st
     }
   }
 
+  if(name.find("RESOLUTION") != std::string::npos) {
+
+    if (m_cdm != nullptr)
+    {
+      uint32_t videoWidth;
+      uint32_t videoHeight;
+      sscanf(value.c_str(), "%d,%d", &videoWidth, &videoHeight);
+      m_cdm->setVideoResolution(m_sessionId, videoWidth, videoHeight);
+    }
+    else
+    {
+#if defined(DEBUG)
+    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] m_cdm is NULL" << endl;
+#endif
+    }
+  }
+
   if(name.find("rpcId") != std::string::npos) {
+
     // Got the RPC ID for gst-svp-ext communication
     unsigned int nID = 0;
     nID =  (unsigned int)std::stoul(value.c_str(), nullptr, 16);
@@ -713,6 +733,7 @@ CDMi_RESULT MediaKeySession::SetParameter(const std::string& name, const std::st
 #endif
     }
   }
+
   return retVal;
 }
 
@@ -728,7 +749,7 @@ CDMi_RESULT MediaKeySession::Decrypt(
   widevine::Cdm::KeyStatusMap map;
   std::string keyStatus;
 
-  void *decryptedData  = nullptr;
+  void *pEncryptedDataStart  = nullptr;
   widevine::Cdm::Subsample subsamplesInfo[ 2 ];
   CDMi_RESULT status = CDMi_S_FALSE;
   *outDataLength = 0;
@@ -737,8 +758,7 @@ CDMi_RESULT MediaKeySession::Decrypt(
   void *DstPhys = NULL;
 
   void * header = NULL;
-  void *pSecureMemory = NULL;
-  SecureBufferInfo *pstSecBufInfo = NULL;
+  void* secToken = NULL;
 
 #ifdef USE_SVP
   if (properties->GetMediaType() == Video) {
@@ -773,33 +793,65 @@ CDMi_RESULT MediaKeySession::Decrypt(
     if (widevine::Cdm::kUsable == it->second) {
 	    // Here we will sepreate each of these to create the decryptSample
 	    widevine::Cdm::Sample decryptSample;
-	    uint32_t actualDataLength = 0;
+	    uint32_t actualEncDataLength = 0;
 
   if (gst_svp_has_header(m_pSVPContext, inData))
   {
     header = (void*)inData;
-    decryptedData = reinterpret_cast<uint8_t *>(gst_svp_header_get_start_of_data(m_pSVPContext, header));
-    gst_svp_header_get_field(m_pSVPContext, header, SvpHeaderFieldName::DataSize, &actualDataLength);
+    pEncryptedDataStart = reinterpret_cast<uint8_t *>(gst_svp_header_get_start_of_data(m_pSVPContext, header));
+    gst_svp_header_get_field(m_pSVPContext, header, SvpHeaderFieldName::DataSize, &actualEncDataLength);
   }
 
 #if defined(DEBUG)
-	    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] actualDataLength: " << actualDataLength << endl;
+	    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] actualEncDataLength: " << actualEncDataLength << endl;
 #endif
 
 #ifdef USE_SVP
-        if (useSVP) {
-            // Allocate secure buffer for decryption.
-            pstSecBufInfo = (SecureBufferInfo*)malloc(sizeof(SecureBufferInfo));
-            svp_allocate_secure_buffers(m_pSVPContext, (void**)&pstSecBufInfo, &pSecureMemory, nullptr, actualDataLength);
-        }
+
+  if (useSVP) {
+
+    // Reallocate input memory if needed.
+    if(m_stSecureBuffInfo.bCreateSecureMemRegion)
+    {
+      if (actualEncDataLength >  m_stSecureBuffInfo.SecureMemRegionSize) {
+          m_stSecureBuffInfo.bReleaseSecureMemRegion = true;
+          if(0 != svp_release_secure_buffers(m_pSVPContext, (void**)&m_stSecureBuffInfo, nullptr, nullptr, 0))
+          {
+              fprintf(stderr, "[%s:%d]  Secure memory free falied",__FUNCTION__,__LINE__);
+              goto ErrorExit;
+          }
+          m_stSecureBuffInfo.SecureMemRegionSize = actualEncDataLength;
+          m_stSecureBuffInfo.bReleaseSecureMemRegion = false;
+          m_stSecureBuffInfo.bCreateSecureMemRegion = true;
+
+          if(0 != svp_allocate_secure_buffers(m_pSVPContext, (void**)&m_stSecureBuffInfo, nullptr, nullptr, m_stSecureBuffInfo.SecureMemRegionSize))
+          {
+              fprintf(stderr, "[%s:%d] Secure memory, re-allocation failed %d",__FUNCTION__,__LINE__, m_stSecureBuffInfo.SecureMemRegionSize);
+              goto ErrorExit;
+          }
+      }
+    }
+
+    m_stSecureBuffInfo.patternClearBlocks = sampleInfo->pattern.clear_blocks;
+
+    if(0 != svp_allocate_secure_buffers(m_pSVPContext, (void**)&m_stSecureBuffInfo, nullptr, (uint8_t*)pEncryptedDataStart, actualEncDataLength))
+    {
+        fprintf(stderr, "[%s:%d]  secure memory, allocate failed [%d]",__FUNCTION__,__LINE__, actualEncDataLength);
+        goto ErrorExit;
+    }
+
+    svp_buffer_alloc_token(&secToken);
+    svp_buffer_to_token(m_pSVPContext, (void *)&m_stSecureBuffInfo, secToken);
+  }
+
 #endif
 
 #if defined(DEBUG)
  	    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] subSampleCount: " << sampleInfo->subSampleCount << endl;
 #endif
 
-	    decryptSample.input.data = static_cast<const uint8_t*>( decryptedData );
-	    decryptSample.input.data_length = actualDataLength;
+	    decryptSample.input.data = static_cast<const uint8_t*>( pEncryptedDataStart );
+	    decryptSample.input.data_length = actualEncDataLength;
 	    decryptSample.input.iv = iv;
 	    decryptSample.input.iv_length = sizeof(iv);
 
@@ -809,19 +861,19 @@ CDMi_RESULT MediaKeySession::Decrypt(
       } else{
         memset( subsamplesInfo, 0, sizeof( subsamplesInfo ) );
         subsamplesInfo[ 0 ].clear_bytes = 0;
-        subsamplesInfo[ 0 ].protected_bytes = actualDataLength;
+        subsamplesInfo[ 0 ].protected_bytes = actualEncDataLength;
 
         decryptSample.input.subsamples = (const widevine::Cdm::Subsample*) subsamplesInfo;
         decryptSample.input.subsamples_length = 1;
       }
 
 	    if (useSVP)
-		    decryptSample.output.data = pstSecBufInfo->pPhysAddr;
+		    decryptSample.output.data = m_stSecureBuffInfo.pPhysAddr;
 	    else
-		    decryptSample.output.data = decryptedData;
+		    decryptSample.output.data = pEncryptedDataStart;
 
 	    decryptSample.output.data_offset = 0;
-	    decryptSample.output.data_length = actualDataLength;
+	    decryptSample.output.data_length = actualEncDataLength;
 
 	    widevine::Cdm::DecryptionBatch decryptionBatch;
 	    decryptionBatch.key_id = sampleInfo->keyId;
@@ -856,19 +908,17 @@ CDMi_RESULT MediaKeySession::Decrypt(
 #endif
 			    break;
 	    }
+
 	    if (widevine::Cdm::kSuccess == m_cdm->decrypt(m_sessionId, decryptionBatch)) {
 
         if (useSVP) {
 #ifdef USE_SVP
-          void* secToken = NULL;
-          svp_buffer_alloc_token(&secToken);
-          svp_buffer_to_token(m_pSVPContext, (void *)pstSecBufInfo, secToken);
 
           if (header)
           {
             gst_svp_header_set_field(m_pSVPContext, header, SvpHeaderFieldName::Type, TokenType::Handle);
           }
-          memcpy((uint8_t *)decryptedData, secToken, svp_token_size());
+          memcpy((uint8_t *)pEncryptedDataStart, secToken, svp_token_size());
           svp_buffer_free_token(secToken);
           //TODO: note the return token data and size
 #endif
@@ -889,28 +939,25 @@ CDMi_RESULT MediaKeySession::Decrypt(
 	    }else{
 		    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] decryption failed..!" << endl;
 #ifdef USE_SVP
-        if (useSVP)
-        {
-          // Free decrypted secure buffer.
-          svp_release_secure_buffers(m_pSVPContext, nullptr, pSecureMemory, nullptr, 0);
-        }
+      if (useSVP)
+      {
+        m_stSecureBuffInfo.bReleaseSecureMemRegion = false;
+        // Free decrypted secure buffer.
+        svp_release_secure_buffers(m_pSVPContext, (void*)&m_stSecureBuffInfo, m_stSecureBuffInfo.pAVSecBuffer , nullptr, 0);
+      }
 #endif
 	    }
 
-      if(useSVP && pstSecBufInfo)
-      {
-        free(pstSecBufInfo);
-        pstSecBufInfo = NULL;
-      }
     }
   }
-
 
   g_lock.Unlock();
 #if defined(DEBUG)
   cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] status: " << status << endl;
   EXT_WV;
 #endif
+
+ErrorExit:
   return status;
 }
 
