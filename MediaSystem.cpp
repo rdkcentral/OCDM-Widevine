@@ -148,6 +148,8 @@ public:
 #endif
         widevine::Cdm::ClientInfo client_info;
 
+        svpPlatformInitializeWidevine();
+
         Config config;
         config.FromString(configline);
 
@@ -293,13 +295,15 @@ public:
         CDMi_RESULT dr = CDMi_S_FALSE;
 
         std::string serverCertificate(reinterpret_cast<const char*>(f_pbServerCertificate), f_cbServerCertificate);
+
+        _adminLock.Lock();
         if (widevine::Cdm::kSuccess == _cdm->setServiceCertificate(widevine::Cdm::ServiceRole::kAllServices, serverCertificate)) {
             dr = CDMi_SUCCESS;
 #if defined(DEBUG)
 	    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] setServiceCertificate SUCCESS..!" << endl;
 #endif
         }
-
+        _adminLock.Unlock();
 #if defined(DEBUG)
 	cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] result: " << dr << endl;
 	EXT_WV;
@@ -310,7 +314,6 @@ public:
     virtual CDMi_RESULT Metrics(uint32_t& bufferLength, uint8_t buffer[]) const {
 
         CDMi_RESULT dr = CDMi_S_FALSE;
-
         std::string metrics;
         uint8_t* data;
 
@@ -330,7 +333,6 @@ public:
 #endif
 
         }
-
         return dr;
 
     }
@@ -348,6 +350,7 @@ public:
         SessionMap::iterator index (_sessions.find(sessionId));
 
         if (index != _sessions.end()) {
+            index->second->Close();
             _sessions.erase(index);
         }
 
@@ -383,8 +386,21 @@ public:
     virtual void onKeyStatusesChange(const std::string& session_id, bool has_new_usable_key) {
 #if defined(DEBUG)
 	ENT_WV;
+#endif
+       _adminLock.Lock();
+
+        SessionMap::iterator index (_sessions.find(session_id));
+
+        if (index != _sessions.end()) {
+             index->second->onKeyStatusChange();
+        }
+
+        _adminLock.Unlock();
+
+#if defined(DEBUG)
 	EXT_WV;
 #endif
+
     }
 
     virtual void onRemoveComplete(const std::string& session_id) {
@@ -438,6 +454,22 @@ public:
 	EXT_WV;
 #endif
         _adminLock.Unlock();
+    }
+
+    virtual CDMi_RESULT GetMetrics(std::string& metrics) {
+        CDMi_RESULT dr = CDMi_S_FALSE;
+#if defined(DEBUG)
+	ENT_WV;
+#endif
+        _adminLock.Lock();
+        if (widevine::Cdm::kSuccess == _cdm->getMetrics(&metrics)) {
+            dr = CDMi_SUCCESS;
+        }
+        _adminLock.Unlock();
+#if defined(DEBUG)
+	EXT_WV;
+#endif
+        return dr;
     }
 
 private:
