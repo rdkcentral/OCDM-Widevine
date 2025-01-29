@@ -8,7 +8,6 @@
 #include <map>
 #include <string>
 
-#include "disallow_copy_and_assign.h"
 #include "http_socket.h"
 
 namespace wvcdm {
@@ -39,7 +38,6 @@ class UrlRequest {
   bool is_connected_;
   HttpSocket socket_;
 
-  CORE_DISALLOW_COPY_AND_ASSIGN(UrlRequest);
 };
 
 }  // namespace wvcdm

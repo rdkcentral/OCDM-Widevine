@@ -28,7 +28,6 @@
 #include <openssl/x509.h>
 
 //#include "log.h"
-#include "platform.h"
 
 namespace wvcdm {
 

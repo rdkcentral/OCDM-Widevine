@@ -61,6 +61,7 @@ const std::string kProvisioningServerUrl =
     "certificateprovisioning/v1/devicecertificates/create"
     "?key=AIzaSyB-5OLKTx2iU5mko18DfdwK5611JIjbUhE";
 
+#if defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED
 // NOTE: Provider ID = widevine.com
 const std::string kCpProductionServiceCertificate = wvcdm::a2bs_hex(
     "0ab9020803121051434fe2a44c763bcc2c826a2d6ef9a718f7d793d005228e02"
@@ -85,7 +86,7 @@ const std::string kCpProductionServiceCertificate = wvcdm::a2bs_hex(
     "26e0c050f3fd3ebe68cef9903ef6405b25fc6e31f93559fcff05657662b3653a"
     "8598ed5751b38694419242a875d9e00d5a5832933024b934859ec8be78adccbb"
     "1ec7127ae9afeef9c5cd2e15bd3048e8ce652f7d8c5d595a0323238c598a28");
-
+#endif /* defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED */
 
 std::string GetProvisioningResponse(const std::string& message) {
 #if defined(DEBUG)
@@ -161,8 +162,10 @@ bool Fetch(const std::string& url, const std::string& message, std::string* resp
 	cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\tERROR - Status_code: " << http_response<<endl;
       }
 #if defined(DEBUG)
+#if defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED
       cout << "\n[RDK_LOG]Reply body(hex): " << b2a_hex(*response).c_str() << endl;
       cout << "\n[RDK_LOG]Reply body(b64): "<< Base64SafeEncode(std::vector<uint8_t>(response->begin(), response->end())).c_str()<<endl;
+#endif /* defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED */
 #endif
     }
 #if defined(DEBUG)
@@ -219,10 +222,12 @@ MediaKeySession::MediaKeySession(widevine::Cdm *cdm, int32_t licenseType)
         cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "Session creation failed with error \"kNeedsDeviceCertificate\" (101)" << endl;
 #endif
 
+#if defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED
         status = cdm->setServiceCertificate(widevine::Cdm::ServiceRole::kProvisioningService, kCpProductionServiceCertificate);
 #if defined(DEBUG)
         cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\tResult of setServiceCertificate() is: " <<  status << endl;
 #endif
+#endif /* defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED */
 
         // Generate a provisioning request.
         std::string request_;
@@ -275,10 +280,10 @@ MediaKeySession::MediaKeySession(widevine::Cdm *cdm, int32_t licenseType)
 }
 
 MediaKeySession::~MediaKeySession(void) {
+  Close();
 #ifdef USE_SVP
   gst_svp_ext_free_context(m_pSVPContext);
 #endif
-  Close();
 }
 
 

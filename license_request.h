@@ -6,7 +6,6 @@
 #define CDM_TEST_LICENSE_REQUEST_H_
 
 #include <string>
-#include "disallow_copy_and_assign.h"
 
 namespace wvcdm {
 
@@ -23,7 +22,6 @@ class LicenseRequest {
  private:
   size_t FindHeaderEndPosition(const std::string& response) const;
 
-  CORE_DISALLOW_COPY_AND_ASSIGN(LicenseRequest);
 };
 
 }  // namespace wvcdm

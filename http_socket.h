@@ -8,11 +8,7 @@
 #include <stdlib.h>
 
 #include <string>
-
-#include <gtest/gtest_prod.h>
 #include <openssl/ssl.h>
-
-#include "disallow_copy_and_assign.h"
 
 namespace wvcdm {
 
@@ -39,7 +35,6 @@ class HttpSocket {
   static bool ParseUrl(const std::string& url, std::string* scheme,
                        bool* secure_connect, std::string* domain_name,
                        std::string* port, std::string* path);
-  FRIEND_TEST(HttpSocketTest, ParseUrlTest);
 
   std::string scheme_;
   bool secure_connect_;
@@ -51,8 +46,6 @@ class HttpSocket {
   int socket_fd_;
   SSL* ssl_;
   SSL_CTX* ssl_ctx_;
-
-  CORE_DISALLOW_COPY_AND_ASSIGN(HttpSocket);
 };
 
 }  // namespace wvcdm
