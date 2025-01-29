@@ -22,9 +22,10 @@
 
 #include "Module.h"
 #include "cdm.h"
-#include "override.h"
 
 #include <core/core.h>
+
+#define OVERRIDE override
 
 namespace CDMi {
 
