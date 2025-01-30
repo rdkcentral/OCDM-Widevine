@@ -32,24 +32,6 @@ constexpr size_t kMaxFetchAttempts = 5;
 void FetchCertificate(const std::string& , std::string*);
 bool Fetch(const std::string& , const std::string& , std::string* , int*);
 
-typedef struct SecureBufferInfo_struct
-{
-    uint32_t secureBufSize;
-    void *pSecBufHandle;
-    void *pPhysAddr;
-    void *pVirtualAddr;
-    uint32_t align;
-    int ion_fd;
-    int map_fd;
-    bool  bCreateSecureMemRegion;
-    bool  bReleaseSecureMemRegion;
-    void *pSecureMemRegion;
-    void *pAVSecBuffer;
-    void *pEncryptedDataBuffer;
-    uint32_t SecureMemRegionSize;
-    uint32_t patternClearBlocks;
-} SecureBufferInfo;
-
 class MediaKeySession : public IMediaKeySession
 {
 public:
