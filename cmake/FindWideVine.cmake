@@ -29,44 +29,11 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
 #
 
-find_path(WIDEVINE_INCLUDE_DIRS NAMES wv_cdm_types.h PATH_SUFFIXES "widevine")
+find_path (WIDEVINE_INCLUDE_DIRS NAME cdm.h PATHS "usr/include/" PATH_SUFFIXES "openssl")
 
-set(WV_LIBS  
-    widevine_ce_cdm_static 
-    ssl 
-    metrics_proto 
-    device_files 
-    oec_level3_static 
-    widevine_cdm_core 
-    license_protocol 
-    crypto
-)
-
-list(APPEND WIDEVINE_LIBRARIES "-Wl,--start-group")
-foreach(_library ${WV_LIBS})
-    message(STATUS "looking for ${_library}")
-    
-    find_library(_${_library}_location
-        NAME ${_library} 
-        PATH_SUFFIXES widevine
-    )
-    
-    list(APPEND WIDEVINE_LIBRARIES "${_${_library}_location}")
-endforeach()
-list(APPEND WIDEVINE_LIBRARIES "-Wl,--end-group")
-
-
-find_library(PROTO_BUF_LITE_LIBRARY NAME protobuf-lite PATH_SUFFIXES lib)
-list(APPEND WIDEVINE_LIBRARIES ${PROTO_BUF_LITE_LIBRARY})
-
-#find_package(ThunderCore REQUIRED)
-find_package(CompileSettingsDebug REQUIRED)
-list(APPEND WIDEVINE_LIBRARIES ${NAMESPACE}Core::${NAMESPACE}Core)
-
-#find_package(ClientDeviceInfo REQUIRED)
-list(APPEND WIDEVINE_LIBRARIES ClientDeviceInfo::ClientDeviceInfo)
+find_library(WIDEVINE_LIBRARIES NAME widevine_ce_cdm_shared PATH_SUFFIXES lib)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Widevine DEFAULT_MSG WIDEVINE_INCLUDE_DIRS WIDEVINE_LIBRARIES)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(WIDEVINE DEFAULT_MSG WIDEVINE_INCLUDE_DIRS WIDEVINE_LIBRARIES)
 
 mark_as_advanced(WIDEVINE_INCLUDE_DIRS WIDEVINE_LIBRARIES)

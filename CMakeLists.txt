@@ -31,6 +31,12 @@ set(MODULE_NAME ${NAMESPACE}${DRM_PLUGIN_NAME})
 find_package(PkgConfig REQUIRED)
 find_package(${NAMESPACE}Core REQUIRED)
 find_package(WideVine REQUIRED)
+find_package(OpenSSL REQUIRED)
+
+if(CMAKE_WIDEVINE_VERSION)
+    message("CMAKE_WIDEVINE_VERSION is ${CMAKE_WIDEVINE_VERSION}")
+    add_definitions(-DWIDEVINE_VERSION=${CMAKE_WIDEVINE_VERSION})
+endif()
 
 set(DRM_PLUGIN_SOURCES
     HostImplementation.cpp
@@ -48,10 +54,21 @@ target_include_directories(${DRM_PLUGIN_NAME}
         ../widevine/util/include)
 
 target_link_libraries(${DRM_PLUGIN_NAME}
-        ${NAMESPACE}Core::${NAMESPACE}Core
-        liboec_ref_shared.so
-        libwidevine_ce_cdm_shared.so
-        crypto curl ssl rt pthread)
+            PRIVATE
+            ${NAMESPACE}Core::${NAMESPACE}Core
+            ${WIDEVINE_LIBRARIES}
+            -lgstsvpext)
+
+if(DEFINED WIDEVINE_REALTEK)
+    target_link_libraries(${DRM_PLUGIN_NAME} PRIVATE liboec_ref_shared.so crypto curl ssl rt pthread)
+    message(STATUS "WIDEVINE_REALTEK is ON")
+elseif(DEFINED WIDEVINE_AMLOGIC)
+    target_link_libraries(${DRM_PLUGIN_NAME} PRIVATE ${OPENSSL_LIBRARIES})
+    message(STATUS "WIDEVINE_AMLOGIC is ON")
+elseif(DEFINED WIDEVINE_BROADCOM)
+    #target_link_libraries(${DRM_PLUGIN_NAME} PRIVATE NEXUS::NEXUS NXCLIENT::NXCLIENT NexusWidevine::NexusWidevine)
+    #message(STATUS "WIDEVINE_BROADCOM is ON")
+endif()
 
 set_target_properties(${DRM_PLUGIN_NAME} PROPERTIES SUFFIX ".drm")
 set_target_properties(${DRM_PLUGIN_NAME} PROPERTIES PREFIX "")
@@ -63,8 +80,6 @@ set_target_properties(${DRM_PLUGIN_NAME} PROPERTIES PREFIX "")
     target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/include/gstreamer-1.0)
     target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/include/glib-2.0)
     target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/lib/glib-2.0/include)
-    target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/include/realtek/genericLinux/include)
-    target_link_libraries(${DRM_PLUGIN_NAME} gstsvpext)
 #endif()
 
 install(TARGETS ${DRM_PLUGIN_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${NAMESPACE}/OCDM)
