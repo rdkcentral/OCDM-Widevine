@@ -18,12 +18,20 @@
 #pragma once
 
 #include "Module.h"
-
 #include <cdm.h>
 #include <cdmi.h>
+#ifdef USE_SVP
+#include "gst_svp_meta.h"
+#endif
 
 namespace CDMi
 {
+
+const int kHttpOk = 200;
+constexpr size_t kMaxFetchAttempts = 5;
+void FetchCertificate(const std::string& , std::string*);
+bool Fetch(const std::string& , const std::string& , std::string* , int*);
+
 class MediaKeySession : public IMediaKeySession
 {
 public:
@@ -45,6 +53,8 @@ public:
 
     virtual CDMi_RESULT Close(void);
 
+    virtual CDMi_RESULT SetParameter(const std::string& name, const std::string& value);
+
     virtual const char* GetSessionId(void) const;
 
     virtual const char* GetKeySystem(void) const;
@@ -58,20 +68,12 @@ public:
         uint32_t f_cbCDMData);
 
     virtual CDMi_RESULT Decrypt(
-        const uint8_t *f_pbSessionKey,
-        uint32_t f_cbSessionKey,
-        const EncryptionScheme encryptionScheme,
-        const EncryptionPattern& pattern,
-        const uint8_t *f_pbIV,
-        uint32_t f_cbIV,
-        uint8_t *f_pbData,
-        uint32_t f_cbData,
-        uint32_t *f_pcbOpaqueClearContent,
-        uint8_t **f_ppbOpaqueClearContent,
-        const uint8_t keyIdLength,
-        const uint8_t* keyId,
-        bool initWithLast15);
-
+        uint8_t*                 inData,          // Incoming encrypted data
+        const uint32_t           inDataLength,    // Incoming encrypted data length
+        uint8_t**                outData,         // Outgoing decrypted data
+        uint32_t*                outDataLength,   // Outgoing decrypted data length
+        const SampleInfo*        sampleInfo,      // Information required to decrypt Sample
+        const IStreamProperties* properties);
 
     virtual CDMi_RESULT ReleaseClearContent(
         const uint8_t *f_pbSessionKey,
@@ -81,7 +83,7 @@ public:
 
     // Callback Interfaces from widevine::IClientNotification
     // -------------------------------------------------------
-    void onMessageUrl(const std::string&) {}
+    void onMessageUrl(const std::string& f_serverUrl) {}
     void onMessage(widevine::Cdm::MessageType f_messageType, const std::string& f_message);
     void onKeyStatusChange();
     void onRemoveComplete();
@@ -99,7 +101,22 @@ private:
     widevine::Cdm::SessionType m_licenseType;
     std::string m_sessionId;
     IMediaKeySessionCallback *m_piCallback;
+    // Stream Types
+    enum StreamType {
+        Unknown     = 0,
+        Video       = 1,
+        Audio       = 2,
+        Data        = 3
+    };
+    StreamType m_StreamType;
     uint8_t m_IV[16];
+    widevine::Cdm::Pattern pattern;
+    widevine::Cdm::EncryptionScheme encryption_scheme;
+#if defined(USE_SVP)
+    void* m_pSVPContext;
+    unsigned int m_rpcID;
+    SecureBufferInfo m_stSecureBuffInfo = {0};
+#endif
 };
 
 }  // namespace CDMi

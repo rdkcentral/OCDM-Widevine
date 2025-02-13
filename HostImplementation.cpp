@@ -20,7 +20,7 @@
 #include "HostImplementation.h"
 
 using namespace widevine;
-using namespace Thunder;
+using namespace WPEFramework;
 
 namespace CDMi {
 
@@ -44,14 +44,14 @@ void HostImplementation::PreloadFile(const std::string& filename, std::string&& 
 /* virtual */ bool HostImplementation::read(const std::string& name, std::string* data) {
   StorageMap::iterator it = _files.find(name);
   bool ok = it != _files.end();
-  TRACE(Trace::Information, (_T("read file: %s: %s"), name.c_str(), ok ? "ok" : "fail"));
+  TRACE_L1("read file: %s: %s", name.c_str(), ok ? "ok" : "fail");
   if (!ok) return false;
   *data = it->second;
   return true;
 }
 
 /* virtual */ bool HostImplementation::write(const std::string& name, const std::string& data) {
-  TRACE(Trace::Information, (_T("write file: %s"), name.c_str()));
+  TRACE_L1("write file: %s", name.c_str());
   _files[name] = data;
   return true;
 }
@@ -59,12 +59,12 @@ void HostImplementation::PreloadFile(const std::string& filename, std::string&& 
 /* virtual */ bool HostImplementation::exists(const std::string& name) {
   StorageMap::iterator it = _files.find(name);
   bool ok = it != _files.end();
-  TRACE(Trace::Information, (_T("exists? %s: %s"), name.c_str(), ok ? "true" : "false"));
+  TRACE_L1("exists? %s: %s", name.c_str(), ok ? "true" : "false");
   return ok;
 }
 
 /* virtual */ bool HostImplementation::remove(const std::string& name) {
-  TRACE(Trace::Information, (_T("remove: %s"), name.c_str()));
+  TRACE_L1("remove: %s", name.c_str());
   if (name.empty()) {
     // If no name, delete all files (see DeviceFiles::DeleteAllFiles())
     _files.clear();

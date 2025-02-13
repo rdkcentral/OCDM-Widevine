@@ -21,6 +21,7 @@
 
 using namespace wvcdm;
 
+#if defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED
 const std::string kDefaultServerCertificate = a2bs_hex(
     "0ABF020803121028703454C008F63618ADE7443DB6C4C8188BE7F99005228E023082010A02"
     "82010100B52112B8D05D023FCC5D95E2C251C1C649B4177CD8D2BEEF355BB06743DE661E3D"
@@ -42,9 +43,11 @@ const std::string kDefaultServerCertificate = a2bs_hex(
     "40383F9C5116D202A20C9229EE969C2519718303B50D0130C3352E06B014D838540F8A0C22"
     "7C0011E0F5B38E4E298ED2CB301EB4564965F55C5D79757A250A4EB9C84AB3E6539F6B6FDF"
     "56899EA29914");
+#endif /* defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED */
 
 const std::string kLicenseServer = "http://widevine-proxy.appspot.com/proxy";
 
+#if defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED
 const std::string kCencInitData = a2bs_hex(
     "00000042"                          // blob size
     "70737368"                          // "pssh"
@@ -55,3 +58,4 @@ const std::string kCencInitData = a2bs_hex(
     "08011a0d7769646576696e655f746573"
     "74220f73747265616d696e675f636c69"
     "7031");
+#endif /* defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED */

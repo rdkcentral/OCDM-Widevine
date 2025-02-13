@@ -19,38 +19,67 @@ cmake_minimum_required(VERSION 3.3)
 
 project(Widevine)
 
-find_package(Thunder)
+find_package(WPEFramework)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-set(PLUGIN_NAME Widevine)
-set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
+set(DRM_PLUGIN_NAME Widevine)
+set(MODULE_NAME ${NAMESPACE}${DRM_PLUGIN_NAME})
 
 # This contains all kinds of plugins (publicely available, so they all need the plugin support library !!
 
+find_package(PkgConfig REQUIRED)
 find_package(${NAMESPACE}Core REQUIRED)
-find_package(CompileSettingsDebug REQUIRED)
 find_package(WideVine REQUIRED)
+find_package(OpenSSL REQUIRED)
 
-set(PLUGIN_SOURCES
+if(CMAKE_WIDEVINE_VERSION)
+    message("CMAKE_WIDEVINE_VERSION is ${CMAKE_WIDEVINE_VERSION}")
+    add_definitions(-DWIDEVINE_VERSION=${CMAKE_WIDEVINE_VERSION})
+endif()
+
+set(DRM_PLUGIN_SOURCES
     HostImplementation.cpp
     MediaSession.cpp
     MediaSystem.cpp
     Module.cpp)
 
 # add the library
-add_library(${PLUGIN_NAME} SHARED ${PLUGIN_SOURCES})
-target_compile_definitions(${PLUGIN_NAME} PRIVATE ${WIDEVINE_FLAGS})
-target_include_directories(${PLUGIN_NAME} PRIVATE ${PLUGINS_INCLUDE_DIR} ${WIDEVINE_INCLUDE_DIRS})
-target_link_libraries(${PLUGIN_NAME} 
-    PRIVATE 
-        ${WIDEVINE_LIBRARIES}
-        ${NAMESPACE}Core::${NAMESPACE}Core
-)
+add_library(${DRM_PLUGIN_NAME} SHARED ${DRM_PLUGIN_SOURCES})
 
-set_target_properties(${PLUGIN_NAME} PROPERTIES SUFFIX ".drm")
-set_target_properties(${PLUGIN_NAME} PROPERTIES PREFIX "")
+target_include_directories(${DRM_PLUGIN_NAME}
+    PRIVATE
+        ../widevine/include
+        ../widevine/TATA_include
+        ../widevine/util/include)
 
-install(TARGETS ${PLUGIN_NAME}
-    PERMISSIONS OWNER_READ GROUP_READ
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${NAMESPACE}/OCDM)
+target_link_libraries(${DRM_PLUGIN_NAME}
+            PRIVATE
+            ${NAMESPACE}Core::${NAMESPACE}Core
+            ${WIDEVINE_LIBRARIES}
+            -lgstsvpext)
+
+if(DEFINED WIDEVINE_REALTEK)
+    target_link_libraries(${DRM_PLUGIN_NAME} PRIVATE liboec_ref_shared.so crypto curl ssl rt pthread)
+    message(STATUS "WIDEVINE_REALTEK is ON")
+elseif(DEFINED WIDEVINE_AMLOGIC)
+    target_link_libraries(${DRM_PLUGIN_NAME} PRIVATE ${OPENSSL_LIBRARIES} curl)
+    message(STATUS "WIDEVINE_AMLOGIC is ON")
+elseif(DEFINED WIDEVINE_BROADCOM)
+    #target_link_libraries(${DRM_PLUGIN_NAME} PRIVATE NEXUS::NEXUS NXCLIENT::NXCLIENT NexusWidevine::NexusWidevine)
+    #message(STATUS "WIDEVINE_BROADCOM is ON")
+endif()
+
+set_target_properties(${DRM_PLUGIN_NAME} PROPERTIES SUFFIX ".drm")
+set_target_properties(${DRM_PLUGIN_NAME} PROPERTIES PREFIX "")
+
+# Enable SVP.
+#if("${RDK_SVP}" STREQUAL "ENABLED")
+    message(STATUS "Using RDK_SVP")
+    add_definitions (-DUSE_SVP)
+    target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/include/gstreamer-1.0)
+    target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/include/glib-2.0)
+    target_include_directories(${DRM_PLUGIN_NAME} PRIVATE ${CMAKE_SYSROOT}/usr/lib/glib-2.0/include)
+#endif()
+
+install(TARGETS ${DRM_PLUGIN_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${NAMESPACE}/OCDM)
