@@ -33,9 +33,7 @@
 
 #include <arpa/inet.h>
 
-#include "url_request.cpp"
-#include "http_socket.cpp"
-#include "license_request.cpp"
+#include <curl/curl.h>
 
 #define NYI_KEYSYSTEM "keysystem-placeholder"
 
@@ -88,92 +86,40 @@ const std::string kCpProductionServiceCertificate = wvcdm::a2bs_hex(
     "1ec7127ae9afeef9c5cd2e15bd3048e8ce652f7d8c5d595a0323238c598a28");
 #endif /* defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED */
 
-std::string GetProvisioningResponse(const std::string& message) {
-#if defined(DEBUG)
-    ENT_WV;
-#endif
-    std::string reply;
-    std::string uri = kProvisioningServerUrl;
-    uri += "&signedRequest=" + message;
-#if defined(DEBUG)
-    cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\turl: " << uri.c_str() << endl;
-#endif
-    FetchCertificate(uri, &reply);
-#if defined(DEBUG)
-    cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\tresponse: " << reply.c_str() << endl;
-    EXT_WV;
-#endif
-    return reply;
+static std::string msgBuffer;
+static size_t curl_writeback(void *ptr, size_t size, size_t nmemb, void *stream)
+{
+    msgBuffer.append((char*)ptr, size * nmemb);
+    return size * nmemb;
 }
 
+static void sendPostRequest(std::string& request, std::string& response);
 
-void FetchCertificate(const std::string& url, std::string* response) {
-#if defined(DEBUG)
-    ENT_WV;
-#endif
-    int status_code;
-#if defined(DEBUG)
-    cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\turl: " << url.c_str() << endl;
-    cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\tresponse: " << *response << endl;
-#endif
-    bool ok = Fetch(url, "", response, &status_code);
-#if defined(DEBUG)
-    cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\tstatus of Fetch function: " << std::boolalpha << ok << endl;
-    EXT_WV;
-#endif
+static void sendPostRequest(std::string& request,
+std::string& response)
+{
+    std::string server_url = kProvisioningServerUrl;
+
+    response.clear();
+
+    msgBuffer.clear();
+    server_url += "&signedRequest=";
+    server_url += request;
+    CURL *curl;
+    CURLcode res;
+    curl = curl_easy_init();
+
+    if (curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, server_url.c_str());
+        curl_easy_setopt(curl, CURLOPT_HTTPPOST, 0);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_writeback);
+        res = curl_easy_perform(curl);
+        response = msgBuffer;
+        curl_easy_cleanup(curl);
+    } else {
+    }
+
 }
-
-
-bool Fetch(const std::string& url, const std::string& message, std::string* response, int* status_code) {
-#if defined(DEBUG)
-    ENT_WV;
-#endif
-    std::string http_response;
-    for (size_t attempt = 1; attempt <= kMaxFetchAttempts; ++attempt) {
-      UrlRequest url_request(url);
-      if (!url_request.is_connected()) {
-        sleep(1);
-        continue;
-      }
-      url_request.PostRequest(message);    
-      if (!url_request.GetResponse(&http_response)) {
-        sleep(1);
-        continue;
-      }
-      break;
-    }
-
-    // Some license servers return 400 for invalid message, some
-    // return 500; treat anything other than 200 as an invalid message.
-    int http_status_code = UrlRequest::GetStatusCode(http_response);
-    if (status_code) {
-      *status_code = http_status_code;
-    }
-
-    if (response) {
-      if (http_status_code == kHttpOk) {                                                                               
-        // Parse out HTTP and server headers and return the body only.
-        std::string reply_body;
-	LicenseRequest lic_request;
-        lic_request.GetDrmMessage(http_response, reply_body);
-        *response = reply_body;
-      } else {
-        *response = http_response;
-	cout << "\n[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\tERROR - Status_code: " << http_response<<endl;
-      }
-#if defined(DEBUG)
-#if defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED
-      cout << "\n[RDK_LOG]Reply body(hex): " << b2a_hex(*response).c_str() << endl;
-      cout << "\n[RDK_LOG]Reply body(b64): "<< Base64SafeEncode(std::vector<uint8_t>(response->begin(), response->end())).c_str()<<endl;
-#endif /* defined WIDEVINE_DEFAULT_SERVER_CERTIFICATE_SUPPORTED */
-#endif
-    }
-#if defined(DEBUG)
-    EXT_WV;
-#endif
-    return true;
-}
-
 
 WPEFramework::Core::CriticalSection g_lock;
 
@@ -237,10 +183,8 @@ MediaKeySession::MediaKeySession(widevine::Cdm *cdm, int32_t licenseType)
 #endif
 
         // Getting the provisioning response.
-        std::string response_ = GetProvisioningResponse(request_);
-#if defined(DEBUG)
-        cout << "[RDK_LOG]" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "\tResult of GetProvisioningResponse() is: " << response_ << endl;
-#endif
+        std::string response_;
+        sendPostRequest(request_, response_);
 
         // Handles a provisioning response and provisions the device.
         status = cdm->handleProvisioningResponse(response_);
