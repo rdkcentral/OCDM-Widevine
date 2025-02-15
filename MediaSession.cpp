@@ -703,15 +703,22 @@ CDMi_RESULT MediaKeySession::Decrypt(
   CDMi_RESULT status = CDMi_S_FALSE;
   *outDataLength = 0;
   unsigned char iv[16];
-  bool useSVP = false;
+  /* by default SVP is enabled for both A/V */
+  bool useSVP = true;
+  bool bIsDynamicSVPEncEnabled = false;
   void *DstPhys = NULL;
 
   void * header = NULL;
   void* secToken = NULL;
 
 #ifdef USE_SVP
-  if (properties->GetMediaType() == Video) {
-    useSVP = true;
+  bIsDynamicSVPEncEnabled = svpIsDynamicSVPEncEnabled();
+  if (bIsDynamicSVPEncEnabled)
+  {
+    /* Dynamic SVP supported means, SVP is enabled for Video only */
+    if (properties->GetMediaType() != Video) {
+      useSVP = false;
+    }
   }
 #endif
 
@@ -798,8 +805,11 @@ CDMi_RESULT MediaKeySession::Decrypt(
 #if defined(DEBUG)
  	    cout << "\n[RDK_LOG:" << __FILE__ << "(" << __LINE__ << ")" << __FUNCTION__ << "] subSampleCount: " << sampleInfo->subSampleCount << endl;
 #endif
+            if (useSVP)
+              decryptSample.input.data = static_cast<const uint8_t*>( m_stSecureBuffInfo.pEncryptedDataBuffer );
+            else 
+	      decryptSample.input.data = static_cast<const uint8_t*>( pEncryptedDataStart );
 
-	    decryptSample.input.data = static_cast<const uint8_t*>( pEncryptedDataStart );
 	    decryptSample.input.data_length = actualEncDataLength;
 	    decryptSample.input.iv = iv;
 	    decryptSample.input.iv_length = sizeof(iv);
