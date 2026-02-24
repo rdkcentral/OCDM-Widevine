@@ -38,6 +38,16 @@ if(CMAKE_WIDEVINE_VERSION)
     add_definitions(-DWIDEVINE_VERSION=${CMAKE_WIDEVINE_VERSION})
 endif()
 
+# WV_PROV_SERVER_URL_STRING must be a full provisioning URL and MUST include
+# a query parameter (e.g. "?key=XXXX"). MediaSession.cpp appends additional
+# parameters (e.g. "&signedRequest=") at runtime.
+if(DEFINED WV_PROV_SERVER_URL_STRING)
+    message(STATUS "WV_PROV_SERVER_URL_STRING is \"${WV_PROV_SERVER_URL_STRING}\"")
+    add_definitions(-DWV_PROV_SERVER_URL=\"${WV_PROV_SERVER_URL_STRING}\")
+else()
+    message(FATAL_ERROR "Mandatory WV_PROV_SERVER_URL_STRING is not defined")
+endif()
+
 set(DRM_PLUGIN_SOURCES
     HostImplementation.cpp
     MediaSession.cpp
